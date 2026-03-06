@@ -27,28 +27,28 @@ export default function Accueil() {
     },
   ];
 
-  // Charger le nombre réel de joueuses depuis l'API
+  
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // Récupérer toutes les joueuses
+        
         const res = await fetch('/api/joueuses');
         const data = await res.json();
         
         if (Array.isArray(data)) {
           setStats(prev => ({
             ...prev,
-            totalJoueuses: data.length // ← Nombre réel de joueuses inscrites
+            totalJoueuses: data.length 
           }));
         }
       } catch (error) {
         console.error('Erreur chargement stats:', error);
-        // En cas d'erreur, garder la valeur par défaut
+        
       }
     };
 
     fetchStats();
-  }, []); // Se charge une fois au montage du composant
+  }, []); 
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#ffffff' }}>
@@ -66,8 +66,8 @@ export default function Accueil() {
               </span>
             </h1>
             <p className="text-xl mb-12 max-w-2xl mx-auto" style={{ color: '#292929' }}>
-              La première plateforme de tournois exclusivement féminins. 
-              Rejoignez une communauté de joueuses passionnées et compétitives !
+              La première plateforme de tournois exclusivement. 
+              Rejoignez une communauté de joueurs passionnés et compétitifs !
             </p>
             <div className="flex gap-4 justify-center">
               <Link 

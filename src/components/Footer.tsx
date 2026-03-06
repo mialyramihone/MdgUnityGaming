@@ -49,7 +49,7 @@ export default function Footer() {
               </span>
             </div>
             <p className="text-base opacity-80 leading-relaxed">
-              La première plateforme de tournois exclusivement féminins. 
+              La première plateforme de tournois exclusivement. 
               Rejoignez une communauté de joueur passionnés et compétitifs !
             </p>
             <div className="flex space-x-4 pt-6">
@@ -72,10 +72,8 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Espace vide au milieu pour aérer */}
           <div className="hidden md:block"></div>
 
-          {/* Liens plateforme - aligné à droite */}
           <div className="md:text-right">
             <h3 className="text-xl font-semibold mb-6" style={{ color: '#f8c741' }}>Plateforme</h3>
             <ul className="space-y-4">
@@ -97,7 +95,6 @@ export default function Footer() {
         
         <div className="border-t-2 my-12" style={{ borderColor: '#f8c741' }}></div>
 
-        {/* Copyright avec plus d'espace */}
         <div className="flex flex-col md:flex-row justify-between items-center text-base opacity-80">
           <p className="mb-4 md:mb-0">© {currentYear} MDG Unity Gaming. Tous droits réservés.</p>
           <p className="flex items-center gap-2">
