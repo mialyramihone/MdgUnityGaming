@@ -770,5 +770,5 @@ const handleDelete = async () => {
         </div>
       )}
     </div>
-  );
+  ); 
 }
