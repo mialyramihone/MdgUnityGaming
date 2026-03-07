@@ -1,24 +1,13 @@
 'use client';
 
-import { JSX, useState, useEffect } from 'react';
-import { Trophy, Calendar, Users, DollarSign, Gamepad2, Search, Filter, LucideIcon, XCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, Gamepad2, Calendar, Clock, Users, ChevronRight,  Trophy } from 'lucide-react';
+import TournoiDetail from './TournoiDetail';
+import Classement from './Classement';
+import Resultat from './Resultat';
 import FormulaireInscription from './FormulaireInscription';
+import { Tournoi } from '@/types/tournoi';
 
-interface Tournoi {
-  id: number;
-  titre: string;
-  jeu: string;
-  description: string;
-  format: string;
-  cashPrize: string;
-  places: number;
-  date: string;
-  status: 'ouvert' | 'bientot' | 'termine';
-  icon: LucideIcon;
-  couleur: string;
-}
-
-// Interface pour les joueuses retournées par l'API
 interface Joueuse {
   id: number;
   compte_id: string;
@@ -30,11 +19,20 @@ interface Joueuse {
   date_inscription: string;
 }
 
+type TournoiStatus = 'ouvert' | 'bientot' | 'ferme' | 'complet';
+
 export default function TournoiList() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filter, setFilter] = useState<string>('tous');
-  const [selectedTournoi, setSelectedTournoi] = useState<{id: number, titre: string} | null>(null);
+  const [activeTab, setActiveTab] = useState<'tournoi' | 'classement' | 'resultat'>('tournoi');
+  const [selectedJeu, setSelectedJeu] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [selectedTournoi, setSelectedTournoi] = useState<Tournoi | null>(null);
+  const [tournoiInscription, setTournoiInscription] = useState<{id: number, titre: string} | null>(null);
   const [inscriptionsCount, setInscriptionsCount] = useState<{[key: number]: number}>({});
+
+  const jeux: string[] = [
+    'Free Fire', 'Blood Strike', 'MLBB', 'PUBG', 
+    'Genshin', 'Roblox', 'Valorant', 'Farlight'
+  ];
 
   const tournois: Tournoi[] = [
     {
@@ -43,31 +41,77 @@ export default function TournoiList() {
       jeu: 'Free Fire',
       description: 'Les équipes sont formées par tirage au sort. Inscription gratuite',
       format: '4 vs 4',
-      cashPrize: '20 H',
+      heure: '20:00',
+      mode: 'Clash Squad',
       places: 16,
-      date: '08 Mars 2026',
+      date: '2026-03-08',
       status: 'ouvert',
-      icon: Gamepad2,
-      couleur: '#f8c741'
+      couleur: '#f8c741',
+      cashPrize: ['1ère place: 20 000 FCFA', '2ème place: 10 000 FCFA', '3ème place: 5 000 FCFA'],
+      reglement: [
+        'Être une joueuse',
+        'Avoir un compte Free Fire valide',
+        'Présence 15min avant le début',
+        'Respecter les autres participantes',
+        'Interdiction de tricher'
+      ],
+      organisation: 'MDG Unity Gaming',
+      contact: 'MDG Unity Gaming',
+      participants: []
     },
+    {
+      id: 2,
+      titre: 'The Tournament saison 4',
+      jeu: 'Free Fire',
+      description: 'Tournoi Phase point rush et finale en présentielle',
+      format: 'Squad',
+      heure: '21:00',
+      mode: 'Battle Royale',
+      places: 999999,
+      date: '2026-03-23',
+      status: 'ouvert',
+      couleur: '#826d4a',
+      cashPrize: ['1ère place: 50 000 FCFA', '2ème place: 25 000 FCFA', '3ème place: 10 000 FCFA'],
+      reglement: [
+        'Équipe de 4 joueuses',
+        'Finale en présentiel à BAEC Ankadivato, Antananarivo ',
+        'Mode Esport',
+        'no Emulateur',
+        'no Alliance',
+        'Respect des horaires',
+        'Fair-play exigé'
+      ],
+      organisation: 'The Tournament',
+      contact: 'MDG Unity Gaming , Black Dragon , Miarana Gaming',
+      participants: []
+    }
   ];
 
-  // Charger le nombre d'inscriptions pour chaque tournoi
   useEffect(() => {
     const fetchInscriptionsCount = async () => {
       try {
-        const res = await fetch('/api/joueuses');
-        const data = await res.json();
-        if (Array.isArray(data)) {
-          const count: {[key: number]: number} = {};
-          // Remplacer 'any' par l'interface Joueuse
-          data.forEach((j: Joueuse) => {
-            if (j.tournoi_id) {
-              count[j.tournoi_id] = (count[j.tournoi_id] || 0) + 1;
+        const joueusesRes = await fetch('/api/joueuses');
+        const joueusesData = await joueusesRes.json();
+        
+        const teamsRes = await fetch('/api/count-teams?id=2');
+        const teamsData = await teamsRes.json();
+        
+        const count: {[key: number]: number} = {};
+        
+        if (Array.isArray(joueusesData)) {
+          joueusesData.forEach((j: Joueuse) => {
+            if (j.tournoi_id === 1) {
+              count[1] = (count[1] || 0) + 1;
             }
           });
-          setInscriptionsCount(count);
         }
+        
+        if (teamsData.count !== undefined) {
+          count[2] = teamsData.count;
+        }
+        
+        setInscriptionsCount(count);
+        
       } catch (error) {
         console.error('Erreur chargement inscriptions:', error);
       }
@@ -76,202 +120,290 @@ export default function TournoiList() {
     fetchInscriptionsCount();
   }, []);
 
-  const filteredTournois = tournois.filter(tournoi => {
+  const getTournoiStatus = (tournoiId: number, placesPrises: number, placesTotal: number): TournoiStatus => {
+    const now = new Date();
+    
+    if (tournoiId === 1) {
+      const fermeture = new Date('2026-03-07T22:00:00');
+      if (placesPrises >= placesTotal) return 'complet';
+      if (now > fermeture) return 'ferme';
+      return 'ouvert';
+    } else if (tournoiId === 2) {
+      const ouverture = new Date('2026-03-09T00:00:00');
+      const fermeture = new Date('2026-03-21T00:00:00');
+      
+      if (now < ouverture) return 'bientot';
+      if (now > fermeture) return 'ferme';
+      return 'ouvert';
+    }
+    return 'ouvert';
+  };
+
+  const getButtonText = (tournoiId: number, status: TournoiStatus): string => {
+    if (status === 'complet') return 'Complet';
+    if (status === 'ferme') return 'Inscriptions fermées';
+    if (status === 'bientot') return 'Bientôt disponible';
+    return "S'inscrire";
+  };
+
+  const filteredTournois: Tournoi[] = tournois.filter(tournoi => {
+    const matchesJeu = selectedJeu === 'all' || tournoi.jeu === selectedJeu;
     const matchesSearch = tournoi.titre.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          tournoi.jeu.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = filter === 'tous' || tournoi.status === filter;
-    return matchesSearch && matchesFilter;
+    return matchesJeu && matchesSearch;
   });
 
-  const getStatusBadge = (status: string, placesRestantes: number): JSX.Element => {
-    if (placesRestantes <= 0) {
-      return <span className="bg-red-100 text-red-600 dark:bg-red-900 dark:text-red-300 px-3 py-1 rounded-full text-sm font-medium">Complet</span>;
-    }
-    switch(status) {
-      case 'ouvert':
-        return <span className="bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-300 px-3 py-1 rounded-full text-sm font-medium">{placesRestantes} place{placesRestantes > 1 ? 's' : ''} restante{placesRestantes > 1 ? 's' : ''}</span>;
-      case 'bientot':
-        return <span className="bg-yellow-100 text-yellow-600 dark:bg-yellow-900 dark:text-yellow-300 px-3 py-1 rounded-full text-sm font-medium">Bientôt</span>;
-      case 'termine':
-        return <span className="bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 px-3 py-1 rounded-full text-sm font-medium">Terminé</span>;
-      default:
-        return <span></span>;
-    }
-  };
+  if (selectedTournoi) {
+    return (
+      <TournoiDetail 
+        tournoi={selectedTournoi}
+        initialInscriptionsCount={inscriptionsCount[selectedTournoi.id] || 0} 
+        onBack={() => setSelectedTournoi(null)}
+        onInscrire={() => setTournoiInscription({ id: selectedTournoi.id, titre: selectedTournoi.titre })}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#ffffff' }}>
-      <div className="container mx-auto px-4 py-12">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-5xl font-bold mb-4" style={{ color: '#292929' }}>
-            MDG Unity Gaming
-          </h1>
-          <p className="text-xl max-w-3xl mx-auto" style={{ color: '#826d4a' }}>
-            Découvrez tous nos tournois et inscrivez-vous pour participer à l&apos;aventure !
-          </p>
-        </div>
-
-        {/* Filtres et recherche */}
-        <div className="flex flex-col md:flex-row gap-4 mb-8">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5" style={{ color: '#826d4a' }} />
-            <input
-              type="text"
-              placeholder="Rechercher un tournoi..."
-              className="w-full pl-10 pr-4 py-2 rounded-lg"
-              style={{ 
-                border: '2px solid #f8c741',
-                backgroundColor: '#ffffff',
-                color: '#292929'
-              }}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <div className="flex gap-2">
+      {/* Sous-navbar */}
+      <div className="border-b border-gray-200 sticky top-0 bg-white z-10">
+        <div className="container mx-auto px-4">
+          <div className="flex gap-8">
             <button
-              onClick={() => setFilter('tous')}
-              className={`px-4 py-2 rounded-lg flex items-center gap-2 font-medium`}
-              style={{
-                backgroundColor: filter === 'tous' ? '#f8c741' : '#ffffff',
-                color: filter === 'tous' ? '#292929' : '#826d4a',
-                border: '2px solid #f8c741'
-              }}
+              onClick={() => setActiveTab('tournoi')}
+              className={`py-4 px-2 font-medium border-b-2 transition-colors ${
+                activeTab === 'tournoi' ? 'border-[#f8c741]' : 'border-transparent'
+              }`}
+              style={{ color: activeTab === 'tournoi' ? '#292929' : '#826d4a' }}
             >
-              <Filter className="w-4 h-4" />
-              Tous
+              Tournoi
             </button>
             <button
-              onClick={() => setFilter('ouvert')}
-              className={`px-4 py-2 rounded-lg font-medium`}
-              style={{
-                backgroundColor: filter === 'ouvert' ? '#f8c741' : '#ffffff',
-                color: filter === 'ouvert' ? '#292929' : '#826d4a',
-                border: '2px solid #f8c741'
-              }}
+              onClick={() => setActiveTab('classement')}
+              className={`py-4 px-2 font-medium border-b-2 transition-colors ${
+                activeTab === 'classement' ? 'border-[#f8c741]' : 'border-transparent'
+              }`}
+              style={{ color: activeTab === 'classement' ? '#292929' : '#826d4a' }}
             >
-              Ouverts
+              Classement
             </button>
             <button
-              onClick={() => setFilter('bientot')}
-              className={`px-4 py-2 rounded-lg font-medium`}
-              style={{
-                backgroundColor: filter === 'bientot' ? '#f8c741' : '#ffffff',
-                color: filter === 'bientot' ? '#292929' : '#826d4a',
-                border: '2px solid #f8c741'
-              }}
+              onClick={() => setActiveTab('resultat')}
+              className={`py-4 px-2 font-medium border-b-2 transition-colors ${
+                activeTab === 'resultat' ? 'border-[#f8c741]' : 'border-transparent'
+              }`}
+              style={{ color: activeTab === 'resultat' ? '#292929' : '#826d4a' }}
             >
-              À venir
+              Résultat
             </button>
           </div>
         </div>
+      </div>
 
-        {/* Liste des tournois */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredTournois.map((tournoi) => {
-            const Icon = tournoi.icon;
-            const placesPrises = inscriptionsCount[tournoi.id] || 0;
-            const placesRestantes = tournoi.places - placesPrises;
-            const estComplet = placesRestantes <= 0;
+      <div className="container mx-auto px-4 py-8">
+        {activeTab === 'tournoi' && (
+          <div className="space-y-6">
+            
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div>
+                <h2 className="text-2xl font-bold" style={{ color: '#292929' }}>Tournois disponibles</h2>
+                <p className="text-sm" style={{ color: '#826d4a' }}>Découvrez tous nos tournois et inscrivez-vous</p>
+              </div>
+              
+              
+              <div className="relative w-full md:w-64">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4" style={{ color: '#826d4a' }} />
+                <input
+                  type="text"
+                  placeholder="Rechercher..."
+                  className="w-full pl-9 pr-4 py-2 rounded-lg border-2 focus:outline-none focus:border-[#f8c741] transition-colors text-sm"
+                  style={{ borderColor: '#f8c741' }}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+            </div>
 
-            return (
-              <div 
-                key={tournoi.id} 
-                className={`rounded-xl overflow-hidden transition-all ${
-                  estComplet ? 'opacity-75' : 'hover:shadow-2xl'
-                }`}
-                style={{ 
-                  backgroundColor: '#ffffff',
-                  border: '1px solid #f8c741'
-                }}
-              >
-                <div 
-                  className="relative h-40 p-6"
-                  style={{ backgroundColor: tournoi.couleur }}
+            {/* Navbar des jeux (comme Classement et Résultat) */}
+            <div className="border-b border-gray-200 pb-2">
+              <div className="flex gap-2 overflow-x-auto">
+                <button
+                  onClick={() => setSelectedJeu('all')}
+                  className={`px-4 py-2 rounded-full font-medium transition-all whitespace-nowrap text-sm ${
+                    selectedJeu === 'all' 
+                      ? 'text-white' 
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                  style={{ backgroundColor: selectedJeu === 'all' ? '#f8c741' : undefined }}
                 >
-                  <Icon className="w-20 h-20 absolute right-4 top-4" style={{ color: '#ffffff', opacity: 0.2 }} />
-                  <div className="relative z-10">
-                    <h3 className="text-2xl font-bold mb-2" style={{ color: tournoi.couleur === '#292929' ? '#ffffff' : '#292929' }}>
-                      {tournoi.titre}
-                    </h3>
-                    <p className="text-sm" style={{ color: tournoi.couleur === '#292929' ? '#ffffff' : '#292929', opacity: 0.9 }}>
-                      {tournoi.jeu}
-                    </p>
-                  </div>
-                  <div className="absolute bottom-4 left-6">
-                    {getStatusBadge(tournoi.status, placesRestantes)}
-                  </div>
-                </div>
-                
-                <div className="p-6">
-                  <p className="mb-4 line-clamp-2" style={{ color: '#292929' }}>
-                    {tournoi.description}
-                  </p>
-                  
-                  <div className="space-y-3 mb-6">
-                    <div className="flex items-center">
-                      <Users className="w-5 h-5 mr-3" style={{ color: '#f8c741' }} />
-                      <span className="font-medium" style={{ color: '#826d4a' }}>Format:</span>
-                      <span className="ml-2 font-semibold" style={{ color: '#292929' }}>{tournoi.format}</span>
-                    </div>
-                    <div className="flex items-center">
-                      <DollarSign className="w-5 h-5 mr-3" style={{ color: '#f8c741' }} />
-                      <span className="font-medium" style={{ color: '#826d4a' }}>Heure:</span>
-                      <span className="ml-2 font-bold" style={{ color: '#292929' }}>{tournoi.cashPrize}</span>
-                    </div>
-                    <div className="flex items-center">
-                      <Trophy className="w-5 h-5 mr-3" style={{ color: '#f8c741' }} />
-                      <span className="font-medium" style={{ color: '#826d4a' }}>Places:</span>
-                      <span className="ml-2 font-semibold" style={{ color: placesRestantes > 0 ? '#292929' : '#ef4444' }}>
-                        {placesPrises}/{tournoi.places}
-                      </span>
-                    </div>
-                    <div className="flex items-center">
-                      <Calendar className="w-5 h-5 mr-3" style={{ color: '#f8c741' }} />
-                      <span className="font-medium" style={{ color: '#826d4a' }}>Date:</span>
-                      <span className="ml-2 font-semibold" style={{ color: '#292929' }}>{tournoi.date}</span>
-                    </div>
-                  </div>
+                  Tous les jeux
+                </button>
+                {jeux.map((jeu) => (
+                  <button
+                    key={jeu}
+                    onClick={() => setSelectedJeu(jeu)}
+                    className={`px-4 py-2 rounded-full font-medium transition-all whitespace-nowrap text-sm ${
+                      selectedJeu === jeu 
+                        ? 'text-white' 
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                    style={{ backgroundColor: selectedJeu === jeu ? '#f8c741' : undefined }}
+                  >
+                    {jeu}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-                  {/* Bouton S'inscrire (désactivé si complet) */}
-                  {estComplet ? (
-                    <div className="w-full text-center py-3 px-4 rounded-lg font-bold flex items-center justify-center gap-2"
-                      style={{ backgroundColor: '#ef4444', color: '#ffffff', opacity: 0.7 }}
-                    >
-                      <XCircle className="w-4 h-4" />
-                      Complet
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => setSelectedTournoi({ id: tournoi.id, titre: tournoi.titre })}
-                      className="w-full text-center block font-bold py-3 px-4 rounded-lg transition-all hover:opacity-80"
-                      style={{ backgroundColor: '#f8c741', color: '#292929' }}
-                    >
-                      S&apos;inscrire ({placesRestantes} place{placesRestantes > 1 ? 's' : ''} restante{placesRestantes > 1 ? 's' : ''})
-                    </button>
-                  )}
+            {/* Statistiques rapides (comme Classement) */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-linear-to-br from-[#f8c741] to-[#f7b731] p-5 rounded-xl">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-[#292929]/70">Total tournois</p>
+                    <p className="text-2xl font-bold text-[#292929]">{filteredTournois.length}</p>
+                  </div>
+                  <div className="bg-white/20 p-3 rounded-lg">
+                    <Trophy className="w-6 h-6 text-[#292929]" />
+                  </div>
                 </div>
               </div>
-            );
-          })}
-        </div>
 
-        {filteredTournois.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-lg" style={{ color: '#826d4a' }}>
-              Aucun tournoi ne correspond à votre recherche.
-            </p>
+              <div className="bg-linear-to-br from-gray-700 to-gray-900 p-5 rounded-xl">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-white/70">Total inscriptions</p>
+                    <p className="text-2xl font-bold text-white">
+                      {Object.values(inscriptionsCount).reduce((a, b) => a + b, 0)}
+                    </p>
+                  </div>
+                  <div className="bg-white/10 p-3 rounded-lg">
+                    <Users className="w-6 h-6 text-white" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-linear-to-br from-purple-600 to-purple-800 p-5 rounded-xl">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-white/70">Jeux disponibles</p>
+                    <p className="text-2xl font-bold text-white">{jeux.length}</p>
+                  </div>
+                  <div className="bg-white/10 p-3 rounded-lg">
+                    <Gamepad2 className="w-6 h-6 text-white" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Message si aucun résultat */}
+            {filteredTournois.length === 0 && (
+              <div className="text-center py-12">
+                <Gamepad2 className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                <p className="text-lg text-gray-500">Aucun tournoi ne correspond à votre recherche</p>
+              </div>
+            )}
+
+            {/* Liste des tournois en grille (style carte) */}
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredTournois.map((tournoi) => {
+                const placesPrises = inscriptionsCount[tournoi.id] || 0;
+                const status = getTournoiStatus(tournoi.id, placesPrises, tournoi.places);
+                const buttonText = getButtonText(tournoi.id, status);
+                
+                const isIllimite = tournoi.id === 2;
+
+                return (
+                  <div 
+                    key={tournoi.id} 
+                    className="bg-white rounded-xl overflow-hidden transition-all cursor-pointer hover:shadow-xl hover:-translate-y-1 border border-gray-200"
+                    onClick={() => {
+                      if (tournoi.id === 1 || (tournoi.id === 2 && status === 'ouvert')) {
+                        setSelectedTournoi(tournoi);
+                      }
+                    }}
+                  >
+                    {/* En-tête coloré */}
+                    <div 
+                      className="h-24 p-4 relative"
+                      style={{ backgroundColor: tournoi.couleur }}
+                    >
+                      <Gamepad2 className="w-12 h-12 absolute right-3 top-3 text-white opacity-20" />
+                      <div>
+                        <h3 className="text-lg font-bold text-white mb-1">{tournoi.titre}</h3>
+                        <span className="text-xs px-2 py-1 bg-white/20 text-white rounded-full">
+                          {tournoi.jeu}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Corps de la carte */}
+                    <div className="p-4">
+                      <div className="flex items-center justify-between text-sm mb-3">
+                        <div className="flex items-center gap-2">
+                          <Calendar size={14} style={{ color: '#f8c741' }} />
+                          <span className="text-gray-600">
+                            {new Date(tournoi.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Clock size={14} style={{ color: '#f8c741' }} />
+                          <span className="text-gray-600">{tournoi.heure}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <Users size={14} style={{ color: '#f8c741' }} />
+                          <span className="text-sm text-gray-600">
+                            {isIllimite ? `${placesPrises} inscrites` : `${placesPrises}/${tournoi.places} places`}
+                          </span>
+                        </div>
+                        <span className={`text-xs px-2 py-1 rounded-full ${
+                          status === 'ouvert' ? 'bg-green-100 text-green-600' :
+                          status === 'bientot' ? 'bg-blue-100 text-blue-600' :
+                          status === 'ferme' ? 'bg-gray-100 text-gray-600' :
+                          'bg-red-100 text-red-600'
+                        }`}>
+                          {status === 'ouvert' ? 'Ouvert' :
+                           status === 'bientot' ? 'Bientôt' :
+                           status === 'ferme' ? 'Fermé' : 'Complet'}
+                        </span>
+                      </div>
+
+                      {/* Bouton Voir détails */}
+                      {(tournoi.id === 1 || (tournoi.id === 2 && status === 'ouvert')) ? (
+                        <button className="w-full mt-2 py-2 bg-[#f8c741] text-[#292929] rounded-lg text-sm font-medium flex items-center justify-center gap-1 hover:bg-[#f9d164] transition">
+                          Voir détails
+                          <ChevronRight size={16} />
+                        </button>
+                      ) : (
+                        <button 
+                          className="w-full mt-2 py-2 bg-gray-100 text-gray-500 rounded-lg text-sm font-medium cursor-not-allowed"
+                          disabled
+                        >
+                          {buttonText}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
+
+        {activeTab === 'classement' && <Classement tournois={tournois} />}
+        {activeTab === 'resultat' && <Resultat tournois={tournois} />}
       </div>
 
       {/* Modal d'inscription */}
-      {selectedTournoi && (
+      {tournoiInscription && (
         <FormulaireInscription
-          tournoiId={selectedTournoi.id}
-          tournoiTitre={selectedTournoi.titre}
-          onClose={() => setSelectedTournoi(null)}
+          tournoiId={tournoiInscription.id}
+          tournoiTitre={tournoiInscription.titre}
+          onClose={() => setTournoiInscription(null)}
         />
       )}
     </div>

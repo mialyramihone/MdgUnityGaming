@@ -3,7 +3,7 @@ import { db } from '@/db';
 import { joueuses } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
-// Interface pour les données de mise à jour
+
 interface UpdateJoueuseData {
   pseudo_ingame?: string;
   pseudo_facebook?: string;
@@ -15,10 +15,11 @@ interface UpdateJoueuseData {
 
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ id: string }> } // ← Changé en Promise
+  { params }: { params: Promise<{ id: string }> } 
+  
 ) {
   try {
-    const { id } = await params; // ← Ajout de await
+    const { id } = await params; 
     const joueuseId = parseInt(id);
     
     if (isNaN(joueuseId)) {
@@ -42,6 +43,8 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> } 
 ) {
+
+  
   try {
     const { id } = await params; 
     const joueuseId = parseInt(id);
@@ -54,7 +57,6 @@ export async function PUT(
     
     console.log('Données reçues pour mise à jour:', body);
     
-    // Préparer les données de mise à jour - NE PAS MODIFIER compte_id
     const updateData: UpdateJoueuseData = {};
     
     if (body.pseudo_ingame !== undefined) updateData.pseudo_ingame = body.pseudo_ingame;

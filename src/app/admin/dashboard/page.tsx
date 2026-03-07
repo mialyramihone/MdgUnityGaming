@@ -3,40 +3,50 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
-  Users, Trophy, Calendar, Download, Search, 
-  Trash2, CheckCircle, XCircle, BarChart3,
+  Users, Trophy, Download, Search, 
+  Trash2, CheckCircle, BarChart3,
   LogOut, Menu, Settings, Eye, Edit, Copy, 
-  Save, X, Info, Facebook, MessageCircle, Gamepad2,
-  ChevronLeft, ChevronRight
+  Save, X, 
+  ChevronLeft, ChevronRight, Bell, Shield, Grid, Users2,
+  Sparkles, Sword, CreditCard, User,
+  Facebook, Gamepad2
 } from 'lucide-react';
+import { Joueuse, Team } from '@/types/tournoi';
 
-interface Joueuse {
-  id: number;
-  compte_id: string;
-  pseudo_ingame: string;
-  pseudo_facebook: string;
-  pseudo_discord: string;
-  handcam: string;
-  tournoi_id: number | null;
-  date_inscription: string;
+interface TeamWithDetails extends Team {
+  player1Id: string;
+  player1Name: string;
+  player2Id: string;
+  player2Name: string;
+  player3Id: string;
+  player3Name: string;
+  player4Id: string;
+  player4Name: string;
+  sub1Id: string;
+  sub1Name: string;
+  sub2Id: string;
+  sub2Name: string;
 }
+
+type TournoiType = 'femina' | 'tournament';
 
 export default function AdminDashboard() {
   const router = useRouter();
   const [joueuses, setJoueuses] = useState<Joueuse[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterHandcam, setFilterHandcam] = useState('tous');
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [teams, setTeams] = useState<TeamWithDetails[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
+  const [activeTab, setActiveTab] = useState<string>('dashboard');
+  const [selectedTournoi, setSelectedTournoi] = useState<TournoiType>('femina');
   
-  // États pour la carte détail
   const [selectedJoueuse, setSelectedJoueuse] = useState<Joueuse | null>(null);
-  const [showDetailCard, setShowDetailCard] = useState(false);
+  const [selectedTeam, setSelectedTeam] = useState<TeamWithDetails | null>(null);
+  const [showDetailCard, setShowDetailCard] = useState<boolean>(false);
+  const [detailType, setDetailType] = useState<'individuel' | 'equipe'>('individuel');
   
-  // États pour la modification
   const [editingJoueuse, setEditingJoueuse] = useState<Joueuse | null>(null);
-  const [showEditModal, setShowEditModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState<boolean>(false);
   const [editFormData, setEditFormData] = useState({
     pseudo_ingame: '',
     pseudo_facebook: '',
@@ -44,13 +54,12 @@ export default function AdminDashboard() {
     handcam: ''
   });
   
-  // État pour la confirmation
-  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<{type: 'individuel' | 'equipe', id: number} | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
   
-  // États pour pagination
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const [currentPageFemina, setCurrentPageFemina] = useState<number>(1);
+  const [currentPageTournament, setCurrentPageTournament] = useState<number>(1);
+  const itemsPerPage: number = 10;
 
   useEffect(() => {
     const isAuth = sessionStorage.getItem('adminAuth');
@@ -60,42 +69,51 @@ export default function AdminDashboard() {
   }, [router]);
 
   useEffect(() => {
-    fetchJoueuses();
+    fetchAllData();
   }, []);
 
-  const fetchJoueuses = async () => {
+  const fetchAllData = async (): Promise<void> => {
+    setLoading(true);
     try {
-      const res = await fetch('/api/joueuses');
-      const data = await res.json();
-      if (Array.isArray(data)) {
-        setJoueuses(data);
+      const joueusesRes = await fetch('/api/joueuses');
+      const joueusesData: Joueuse[] = await joueusesRes.json();
+      if (Array.isArray(joueusesData)) {
+        setJoueuses(joueusesData);
       }
-    } catch (error) {
-      console.error('Erreur chargement:', error);
+
+      const teamsRes = await fetch('/api/teams-with-players');
+      const teamsData: TeamWithDetails[] = await teamsRes.json();
+      if (Array.isArray(teamsData)) {
+        setTeams(teamsData);
+      }
+    } catch {
+      console.error('Erreur chargement des données');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = (): void => {
     sessionStorage.removeItem('adminAuth');
     router.push('/admin/login');
   };
 
-  // Fonction pour copier le lien Facebook
-  const copyToClipboard = (text: string) => {
+  const copyToClipboard = (text: string): void => {
     navigator.clipboard.writeText(text);
-    alert('Lien Facebook copié !');
+    alert('Copié !');
   };
 
-  // Ouvrir la carte détail
-  const handleViewDetails = (joueuse: Joueuse) => {
-    setSelectedJoueuse(joueuse);
+  const handleViewDetails = (type: 'individuel' | 'equipe', data: Joueuse | TeamWithDetails): void => {
+    setDetailType(type);
+    if (type === 'individuel') {
+      setSelectedJoueuse(data as Joueuse);
+    } else {
+      setSelectedTeam(data as TeamWithDetails);
+    }
     setShowDetailCard(true);
   };
 
-  // Ouvrir le modal de modification
-  const handleEdit = (joueuse: Joueuse) => {
+  const handleEdit = (joueuse: Joueuse): void => {
     setEditingJoueuse(joueuse);
     setEditFormData({
       pseudo_ingame: joueuse.pseudo_ingame,
@@ -106,161 +124,233 @@ export default function AdminDashboard() {
     setShowEditModal(true);
   };
 
-    
-const handleSaveEdit = async () => {
-  if (!editingJoueuse) return;
+  const handleSaveEdit = async (): Promise<void> => {
+    if (!editingJoueuse) return;
 
     try {
-      
-    const updatedData = {
-      compte_id: editingJoueuse.compte_id, 
-      pseudo_ingame: editFormData.pseudo_ingame,
-      pseudo_facebook: editFormData.pseudo_facebook,
-      pseudo_discord: editFormData.pseudo_discord,
-      handcam: editFormData.handcam,
-      tournoi_id: editingJoueuse.tournoi_id 
-    };
+      const updatedData = {
+        compte_id: editingJoueuse.compte_id,
+        pseudo_ingame: editFormData.pseudo_ingame,
+        pseudo_facebook: editFormData.pseudo_facebook,
+        pseudo_discord: editFormData.pseudo_discord,
+        handcam: editFormData.handcam,
+        tournoi_id: editingJoueuse.tournoi_id
+      };
 
-    const res = await fetch(`/api/joueuses/${editingJoueuse.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updatedData)
-    });
+      const res = await fetch(`/api/joueuses/${editingJoueuse.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedData)
+      });
 
-    if (res.ok) {
-      setShowEditModal(false);
-      setEditingJoueuse(null);
-      await fetchJoueuses(); 
-      alert('Modification réussie !');
-    } else {
-      const errorData = await res.json();
-      alert(`Erreur lors de la modification: ${errorData.error || 'Erreur inconnue'}`);
+      if (res.ok) {
+        setShowEditModal(false);
+        setEditingJoueuse(null);
+        await fetchAllData();
+        alert('Modification réussie !');
+      } else {
+        const errorData = await res.json();
+        alert(`Erreur: ${errorData.error || 'Erreur inconnue'}`);
+      }
+    } catch {
+      console.error('Erreur lors de la modification');
+      alert('Erreur de connexion');
     }
-  } catch (error) {
-    console.error('Erreur:', error);
-    alert('Erreur de connexion');
-  }
-};
-    
-    
-  const handleExportCSV = () => {
-    const headers = ['ID Compte', 'Pseudo In Game', 'Facebook', 'Discord', 'Handcam', 'Date'];
-    const csvData = joueusesFiltrees.map(j => [
-      j.compte_id,
-      j.pseudo_ingame,
-      j.pseudo_facebook,
-      j.pseudo_discord,
-      j.handcam,
-      new Date(j.date_inscription).toLocaleDateString('fr-FR')
-    ]);
+  };
+
+  const handleDeleteTeam = async (teamId: number): Promise<void> => {
+    try {
+      const res = await fetch(`/api/teams/${teamId}`, { 
+        method: 'DELETE' 
+      });
+
+      if (res.ok) {
+        await fetchAllData();
+        alert('Équipe supprimée avec succès !');
+      } else {
+        const errorData = await res.json();
+        alert(`Erreur: ${errorData.error || 'Erreur inconnue'}`);
+      }
+    } catch {
+      console.error('Erreur lors de la suppression');
+      alert('Erreur de connexion');
+    }
+  };
+
+  const handleExportCSV = (type: 'femina' | 'tournament'): void => {
+    let headers: string[] = [];
+    let csvData: string[][] = [];
+
+    if (type === 'femina') {
+      headers = ['ID Compte', 'Pseudo', 'Facebook', 'Discord', 'Handcam', 'Date'];
+      csvData = joueusesFiltrees.map((j: Joueuse) => [
+        j.compte_id,
+        j.pseudo_ingame,
+        j.pseudo_facebook,
+        j.pseudo_discord,
+        j.handcam,
+        new Date(j.date_inscription).toLocaleDateString('fr-FR')
+      ]);
+    } else {
+      headers = ['Code', 'Équipe', 'Tag', 'Capitaine', 'Joueurs', 'Paiement', 'Réf', 'Date'];
+      csvData = teamsFiltrees.map((t: TeamWithDetails) => {
+        const joueurs = [
+          t.player1Name, t.player2Name, t.player3Name, t.player4Name,
+          t.sub1Name, t.sub2Name
+        ].filter(name => name).join(' / ');
+        
+        return [
+          t.registrationCode,
+          t.teamName,
+          t.teamTag || '',
+          t.captainName,
+          joueurs,
+          t.paymentMethod,
+          t.paymentRef,
+          new Date(t.createdAt).toLocaleDateString('fr-FR')
+        ];
+      });
+    }
 
     const csv = [headers, ...csvData].map(row => row.join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `inscriptions_${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `${type}_${new Date().toISOString().split('T')[0]}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
   };
-    
-  // Demander confirmation suppression
-  const confirmDelete = (id: number) => {
-    setDeleteConfirm(id);
+
+  const confirmDelete = (type: 'individuel' | 'equipe', id: number): void => {
+    setDeleteConfirm({ type, id });
     setShowDeleteConfirm(true);
   };
 
-const handleDelete = async () => {
-  if (!deleteConfirm) return;
+  const handleDelete = async (): Promise<void> => {
+    if (!deleteConfirm) return;
 
-  try {
-    const res = await fetch(`/api/joueuses/${deleteConfirm}`, { 
-      method: 'DELETE' 
-    });
+    if (deleteConfirm.type === 'individuel') {
+      try {
+        const res = await fetch(`/api/joueuses/${deleteConfirm.id}`, { 
+          method: 'DELETE' 
+        });
 
-    if (res.ok) {
+        if (res.ok) {
+          setShowDeleteConfirm(false);
+          setDeleteConfirm(null);
+          await fetchAllData();
+          alert('Suppression réussie !');
+        } else {
+          const errorData = await res.json();
+          alert(`Erreur: ${errorData.error || 'Erreur inconnue'}`);
+        }
+      } catch {
+        console.error('Erreur lors de la suppression');
+        alert('Erreur de connexion');
+      }
+    } else {
+      await handleDeleteTeam(deleteConfirm.id);
       setShowDeleteConfirm(false);
       setDeleteConfirm(null);
-      await fetchJoueuses(); 
-      alert('Suppression réussie !');
-    } else {
-      const errorData = await res.json();
-      alert(`Erreur lors de la suppression: ${errorData.error || 'Erreur inconnue'}`);
     }
-  } catch (error) {
-    console.error('Erreur:', error);
-    alert('Erreur de connexion');
-  }
-};
+  };
 
-    
-  const joueusesFiltrees = joueuses.filter(j => {
+  const joueusesFiltrees: Joueuse[] = joueuses.filter((j: Joueuse) => {
     const matchesSearch = 
       j.compte_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
       j.pseudo_ingame.toLowerCase().includes(searchTerm.toLowerCase()) ||
       j.pseudo_facebook.toLowerCase().includes(searchTerm.toLowerCase()) ||
       j.pseudo_discord.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesHandcam = filterHandcam === 'tous' || 
-      (filterHandcam === 'oui' && j.handcam === 'Oui') ||
-      (filterHandcam === 'non' && j.handcam === 'Non');
+    const matchesTournoi = j.tournoi_id === 1;
 
-    return matchesSearch && matchesHandcam;
+    return matchesSearch && matchesTournoi;
   });
 
-  // Pagination
-  const totalPages = Math.ceil(joueusesFiltrees.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const joueusesPaginees = joueusesFiltrees.slice(startIndex, endIndex);
+  const teamsFiltrees: TeamWithDetails[] = teams.filter((t: TeamWithDetails) => {
+    const matchesSearch = 
+      t.teamName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      t.captainName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      t.registrationCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      t.player1Name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      t.player2Name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      t.player3Name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      t.player4Name.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesTournoi = t.tournamentId === 2;
+
+    return matchesSearch && matchesTournoi;
+  });
+
+  const totalPagesFemina: number = Math.ceil(joueusesFiltrees.length / itemsPerPage);
+  const startIndexFemina: number = (currentPageFemina - 1) * itemsPerPage;
+  const endIndexFemina: number = startIndexFemina + itemsPerPage;
+  const joueusesPaginees = joueusesFiltrees.slice(startIndexFemina, endIndexFemina);
+
+  const totalPagesTournament: number = Math.ceil(teamsFiltrees.length / itemsPerPage);
+  const startIndexTournament: number = (currentPageTournament - 1) * itemsPerPage;
+  const endIndexTournament: number = startIndexTournament + itemsPerPage;
+  const teamsPaginees = teamsFiltrees.slice(startIndexTournament, endIndexTournament);
 
   const stats = {
-    total: joueuses.length,
-    avecHandcam: joueuses.filter(j => j.handcam === 'Oui').length,
-    sansHandcam: joueuses.filter(j => j.handcam === 'Non').length,
-    aujourdhui: joueuses.filter(j => {
-      const today = new Date().toDateString();
-      return new Date(j.date_inscription).toDateString() === today;
-    }).length
+    totalIndividuelles: joueuses.length,
+    totalEquipes: teams.length,
+    avecHandcam: joueuses.filter((j: Joueuse) => j.handcam === 'Oui').length,
+    tournoi1: joueuses.filter((j: Joueuse) => j.tournoi_id === 1).length,
+    tournoi2: teams.filter((t: TeamWithDetails) => t.tournamentId === 2).length,
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#ffffff' }}>
+      <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-t-transparent rounded-full animate-spin mx-auto mb-4" style={{ borderColor: '#f8c741' }}></div>
-          <p style={{ color: '#292929' }}>Chargement du dashboard...</p>
+          <div className="w-16 h-16 border-4 border-t-transparent rounded-full animate-spin mx-auto mb-4 border-[#f8c741]"></div>
+          <p className="text-gray-600">Chargement du dashboard...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#f5f5f5' }}>
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <div className="sticky top-0 z-50" style={{ backgroundColor: '#292929', borderBottom: '3px solid #f8c741' }}>
+      <div className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-4">
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="p-2 rounded-lg hover:opacity-80"
-                style={{ color: '#ffffff' }}
+                className="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-700"
               >
                 <Menu className="w-5 h-5" />
               </button>
-              <h1 className="text-xl font-bold" style={{ color: '#f8c741' }}>Admin Dashboard</h1>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-[#f8c741] rounded-lg flex items-center justify-center">
+                  <Grid className="w-4 h-4 text-white" />
+                </div>
+                <h1 className="text-xl font-semibold text-gray-800">Admin<span className="text-[#f8c741]">Panel</span></h1>
+              </div>
             </div>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 px-3 py-1 rounded-lg text-sm hover:opacity-80"
-              style={{ backgroundColor: '#ef4444', color: '#ffffff' }}
-            >
-              <LogOut className="w-4 h-4" />
-              Déconnexion
-            </button>
+            
+            <div className="flex items-center gap-3">
+              <button className="p-2 rounded-lg hover:bg-gray-100 transition-colors relative">
+                <Bell className="w-5 h-5 text-gray-600" />
+                <span className="absolute top-1 right-1 w-2 h-2 bg-[#f8c741] rounded-full"></span>
+              </button>
+              <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                <Shield className="w-4 h-4 text-gray-600" />
+              </div>
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors border border-red-200"
+              >
+                <LogOut className="w-4 h-4" />
+                Déconnexion
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -268,60 +358,30 @@ const handleDelete = async () => {
       <div className="flex">
         {/* Sidebar */}
         {sidebarOpen && (
-          <div className="w-64 min-h-screen p-4" style={{ backgroundColor: '#ffffff', borderRight: '1px solid #f8c741' }}>
-            <nav className="space-y-2">
-              <button
-                onClick={() => setActiveTab('dashboard')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium ${
-                  activeTab === 'dashboard' ? '' : 'hover:opacity-80'
-                }`}
-                style={{ 
-                  backgroundColor: activeTab === 'dashboard' ? '#f8c741' : 'transparent',
-                  color: activeTab === 'dashboard' ? '#292929' : '#292929'
-                }}
-              >
-                <BarChart3 className="w-5 h-5" />
-                Dashboard
-              </button>
-              <button
-                onClick={() => setActiveTab('inscriptions')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium ${
-                  activeTab === 'inscriptions' ? '' : 'hover:opacity-80'
-                }`}
-                style={{ 
-                  backgroundColor: activeTab === 'inscriptions' ? '#f8c741' : 'transparent',
-                  color: activeTab === 'inscriptions' ? '#292929' : '#292929'
-                }}
-              >
-                <Users className="w-5 h-5" />
-                Inscriptions
-              </button>
-              <button
-                onClick={() => setActiveTab('tournois')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium ${
-                  activeTab === 'tournois' ? '' : 'hover:opacity-80'
-                }`}
-                style={{ 
-                  backgroundColor: activeTab === 'tournois' ? '#f8c741' : 'transparent',
-                  color: activeTab === 'tournois' ? '#292929' : '#292929'
-                }}
-              >
-                <Trophy className="w-5 h-5" />
-                Tournois
-              </button>
-              <button
-                onClick={() => setActiveTab('parametres')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium ${
-                  activeTab === 'parametres' ? '' : 'hover:opacity-80'
-                }`}
-                style={{ 
-                  backgroundColor: activeTab === 'parametres' ? '#f8c741' : 'transparent',
-                  color: activeTab === 'parametres' ? '#292929' : '#292929'
-                }}
-              >
-                <Settings className="w-5 h-5" />
-                Paramètres
-              </button>
+          <div className="w-64 min-h-screen bg-white border-r border-gray-200 p-4">
+            <nav className="space-y-1">
+              {[
+                { id: 'dashboard', icon: BarChart3, label: 'Dashboard' },
+                { id: 'inscriptions', icon: Users, label: 'Inscriptions' },
+                { id: 'tournois', icon: Trophy, label: 'Tournois' },
+                { id: 'parametres', icon: Settings, label: 'Paramètres' }
+              ].map((item) => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveTab(item.id)}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all ${
+                      activeTab === item.id 
+                        ? 'bg-[#f8c741] text-white shadow-sm' 
+                        : 'text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    <Icon className="w-5 h-5" />
+                    {item.label}
+                  </button>
+                );
+              })}
             </nav>
           </div>
         )}
@@ -332,78 +392,44 @@ const handleDelete = async () => {
             <>
               {/* Stats Cards */}
               <div className="grid md:grid-cols-4 gap-6 mb-8">
-                <div className="p-6 rounded-xl" style={{ backgroundColor: '#ffffff', border: '1px solid #f8c741' }}>
+                <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
                   <div className="flex items-center justify-between mb-3">
-                    <Users className="w-8 h-8" style={{ color: '#f8c741' }} />
-                    <span className="text-3xl font-bold" style={{ color: '#292929' }}>{stats.total}</span>
-                  </div>
-                  <p style={{ color: '#826d4a' }}>Total inscriptions</p>
-                </div>
-                <div className="p-6 rounded-xl" style={{ backgroundColor: '#ffffff', border: '1px solid #f8c741' }}>
-                  <div className="flex items-center justify-between mb-3">
-                    <CheckCircle className="w-8 h-8" style={{ color: '#22c55e' }} />
-                    <span className="text-3xl font-bold" style={{ color: '#292929' }}>{stats.avecHandcam}</span>
-                  </div>
-                  <p style={{ color: '#826d4a' }}>Avec Handcam</p>
-                </div>
-                <div className="p-6 rounded-xl" style={{ backgroundColor: '#ffffff', border: '1px solid #f8c741' }}>
-                  <div className="flex items-center justify-between mb-3">
-                    <XCircle className="w-8 h-8" style={{ color: '#ef4444' }} />
-                    <span className="text-3xl font-bold" style={{ color: '#292929' }}>{stats.sansHandcam}</span>
-                  </div>
-                  <p style={{ color: '#826d4a' }}>Sans Handcam</p>
-                </div>
-                <div className="p-6 rounded-xl" style={{ backgroundColor: '#ffffff', border: '1px solid #f8c741' }}>
-                  <div className="flex items-center justify-between mb-3">
-                    <Calendar className="w-8 h-8" style={{ color: '#f8c741' }} />
-                    <span className="text-3xl font-bold" style={{ color: '#292929' }}>{stats.aujourdhui}</span>
-                  </div>
-                  <p style={{ color: '#826d4a' }}>Aujourd&apos;hui</p>
-                </div>
-              </div>
-
-              {/* Graphique simple */}
-              <div className="p-6 rounded-xl mb-8" style={{ backgroundColor: '#ffffff', border: '1px solid #f8c741' }}>
-                <h2 className="text-lg font-bold mb-4" style={{ color: '#292929' }}>Répartition Handcam</h2>
-                <div className="flex h-8 rounded-lg overflow-hidden">
-                  <div 
-                    style={{ 
-                      width: `${(stats.avecHandcam / stats.total * 100) || 0}%`, 
-                      backgroundColor: '#22c55e',
-                      height: '100%'
-                    }}
-                  />
-                  <div 
-                    style={{ 
-                      width: `${(stats.sansHandcam / stats.total * 100) || 0}%`, 
-                      backgroundColor: '#ef4444',
-                      height: '100%'
-                    }}
-                  />
-                </div>
-                <div className="flex justify-between mt-2 text-sm">
-                  <span style={{ color: '#22c55e' }}>Avec Handcam: {stats.avecHandcam}</span>
-                  <span style={{ color: '#ef4444' }}>Sans Handcam: {stats.sansHandcam}</span>
-                </div>
-              </div>
-
-              {/* Dernières inscriptions */}
-              <div className="p-6 rounded-xl" style={{ backgroundColor: '#ffffff', border: '1px solid #f8c741' }}>
-                <h2 className="text-lg font-bold mb-4" style={{ color: '#292929' }}>Dernières inscriptions</h2>
-                <div className="space-y-3">
-                  {joueuses.slice(-5).reverse().map((j) => (
-                    <div key={j.id} className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: '#f8c741', opacity: 0.9 }}>
-                      <div>
-                        <p className="font-semibold" style={{ color: '#292929' }}>{j.pseudo_ingame}</p>
-                        <p className="text-xs" style={{ color: '#292929', opacity: 0.7 }}>ID: {j.compte_id} - {new Date(j.date_inscription).toLocaleString('fr-FR')}</p>
-                      </div>
-                      {j.handcam === 'Oui' ? (
-                        <CheckCircle className="w-5 h-5" style={{ color: '#22c55e' }} />
-                      ) : (
-                        <XCircle className="w-5 h-5" style={{ color: '#ef4444' }} />
-                      )}
+                    <div className="w-10 h-10 bg-[#f8c741]/10 rounded-lg flex items-center justify-center">
+                      <Users className="w-5 h-5 text-[#f8c741]" />
                     </div>
-                  ))}
+                    <span className="text-3xl font-bold text-gray-800">{stats.totalIndividuelles + stats.totalEquipes}</span>
+                  </div>
+                  <p className="text-gray-500 text-sm">Inscriptions totales</p>
+                </div>
+                
+                <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <Sparkles className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <span className="text-3xl font-bold text-gray-800">{stats.tournoi1}</span>
+                  </div>
+                  <p className="text-gray-500 text-sm">Femina Esport (8 Mars)</p>
+                </div>
+                
+                <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                      <Sword className="w-5 h-5 text-purple-600" />
+                    </div>
+                    <span className="text-3xl font-bold text-gray-800">{stats.tournoi2}</span>
+                  </div>
+                  <p className="text-gray-500 text-sm">The Tournament S4 (23 Mars)</p>
+                </div>
+                
+                <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                    </div>
+                    <span className="text-3xl font-bold text-gray-800">{stats.avecHandcam}</span>
+                  </div>
+                  <p className="text-gray-500 text-sm">Avec Handcam</p>
                 </div>
               </div>
             </>
@@ -411,246 +437,569 @@ const handleDelete = async () => {
 
           {activeTab === 'inscriptions' && (
             <>
-              {/* Filtres */}
-              <div className="mb-6 p-4 rounded-xl" style={{ backgroundColor: '#ffffff', border: '1px solid #f8c741' }}>
-                <div className="flex flex-col md:flex-row gap-4">
-                  <div className="flex-1 relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5" style={{ color: '#826d4a' }} />
-                    <input
-                      type="text"
-                      placeholder="Rechercher par ID compte, pseudo, Facebook, Discord..."
-                      className="w-full pl-10 pr-4 py-2 rounded-lg"
-                      style={{ 
-                        border: '1px solid #f8c741',
-                        backgroundColor: '#ffffff',
-                        color: '#292929'
-                      }}
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                  </div>
-                  <select
-                    className="px-4 py-2 rounded-lg"
-                    style={{ 
-                      border: '1px solid #f8c741',
-                      backgroundColor: '#ffffff',
-                      color: '#292929'
-                    }}
-                    value={filterHandcam}
-                    onChange={(e) => setFilterHandcam(e.target.value)}
-                  >
-                    <option value="tous">Tous (Handcam)</option>
-                    <option value="oui">Avec Handcam</option>
-                    <option value="non">Sans Handcam</option>
-                  </select>
-                  <button
-                    onClick={handleExportCSV}
-                    className="flex items-center gap-2 px-6 py-2 rounded-lg font-semibold hover:opacity-80"
-                    style={{ backgroundColor: '#f8c741', color: '#292929' }}
-                  >
-                    <Download className="w-4 h-4" />
-                    Export CSV
-                  </button>
+              {/* Barre de recherche commune */}
+              <div className="mb-6">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Rechercher dans les deux tournois..."
+                    className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 text-gray-700 placeholder-gray-400 focus:border-[#f8c741] focus:outline-none"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
                 </div>
               </div>
 
-              {/* Tableau avec ID Compte, Pseudo, FB, Discord, Handcam */}
-              <div className="rounded-xl overflow-hidden" style={{ backgroundColor: '#ffffff', border: '1px solid #f8c741' }}>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr style={{ backgroundColor: '#f8c741' }}>
-                        <th className="text-left py-3 px-4" style={{ color: '#292929' }}>ID Compte</th>  
-                        <th className="text-left py-3 px-4" style={{ color: '#292929' }}>Pseudo</th>
-                        <th className="text-left py-3 px-4" style={{ color: '#292929' }}>Facebook</th>
-                        <th className="text-left py-3 px-4" style={{ color: '#292929' }}>Discord</th>
-                        <th className="text-left py-3 px-4" style={{ color: '#292929' }}>Handcam</th>
-                        <th className="text-left py-3 px-4" style={{ color: '#292929' }}>Date</th>
-                        <th className="text-left py-3 px-4" style={{ color: '#292929' }}>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {joueusesPaginees.map((joueuse) => (
-                        <tr 
-                          key={joueuse.id}
-                          className="border-t hover:opacity-80"
-                          style={{ borderColor: '#f8c741' }}
-                        >
-                          <td className="py-3 px-4 font-mono" style={{ color: '#292929' }}>{joueuse.compte_id}</td>
-                          <td className="py-3 px-4" style={{ color: '#292929' }}>{joueuse.pseudo_ingame}</td>
-                          <td className="py-3 px-4">
-                            <div className="flex items-center gap-2">
-                              <span style={{ color: '#292929' }}>{joueuse.pseudo_facebook}</span>
-                              <button
-                                onClick={() => copyToClipboard(joueuse.pseudo_facebook)}
-                                className="p-1 hover:opacity-60"
-                                title="Copier le lien Facebook"
-                              >
-                                <Copy className="w-4 h-4" style={{ color: '#3b82f6' }} />
-                              </button>
-                            </div>
-                          </td>
-                          <td className="py-3 px-4" style={{ color: '#292929' }}>{joueuse.pseudo_discord}</td>
-                          <td className="py-3 px-4">
-                            {joueuse.handcam === 'Oui' ? (
-                              <CheckCircle className="w-5 h-5" style={{ color: '#22c55e' }} />
-                            ) : (
-                              <XCircle className="w-5 h-5" style={{ color: '#ef4444' }} />
-                            )}
-                          </td>
-                          <td className="py-3 px-4" style={{ color: '#292929' }}>
-                            {new Date(joueuse.date_inscription).toLocaleDateString('fr-FR')}
-                          </td>
-                          <td className="py-3 px-4">
+              {/* Mini-navbar pour les tournois */}
+              <div className="flex gap-2 mb-6 border-b border-gray-200">
+                <button
+                  onClick={() => setSelectedTournoi('femina')}
+                  className={`px-6 py-3 font-medium text-sm flex items-center gap-2 border-b-2 transition-colors ${
+                    selectedTournoi === 'femina' 
+                      ? 'border-[#f8c741] text-[#f8c741]' 
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Tournoi Femina Esport 
+                </button>
+                <button
+                  onClick={() => setSelectedTournoi('tournament')}
+                  className={`px-6 py-3 font-medium text-sm flex items-center gap-2 border-b-2 transition-colors ${
+                    selectedTournoi === 'tournament' 
+                      ? 'border-[#f8c741] text-[#f8c741]' 
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <Sword className="w-4 h-4" />
+                  The Tournament S4 
+                </button>
+              </div>
+
+              {/* Tableau Tournoi Femina */}
+              {selectedTournoi === 'femina' && (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h2 className="text-lg font-semibold text-gray-800">
+                      Inscriptions individuelles • <span className="text-[#f8c741]">{joueusesFiltrees.length}</span>
+                    </h2>
+                    <button
+                      onClick={() => handleExportCSV('femina')}
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium bg-[#f8c741] text-white hover:bg-[#e5b53a] transition-colors shadow-sm text-sm"
+                    >
+                      <Download className="w-4 h-4" />
+                      Export CSV
+                    </button>
+                  </div>
+
+                  <div className="bg-white rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="bg-blue-50 border-b border-gray-200">
+                            <th className="text-left py-3 px-4 text-gray-600 font-medium">ID Compte</th>
+                            <th className="text-left py-3 px-4 text-gray-600 font-medium">Pseudo</th>
+                            <th className="text-left py-3 px-4 text-gray-600 font-medium">Facebook</th>
+                            <th className="text-left py-3 px-4 text-gray-600 font-medium">Discord</th>
+                            <th className="text-left py-3 px-4 text-gray-600 font-medium">Handcam</th>
+                            <th className="text-left py-3 px-4 text-gray-600 font-medium">Date</th>
+                            <th className="text-left py-3 px-4 text-gray-600 font-medium">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {joueusesPaginees.map((joueuse) => (
+                            <tr 
+                              key={joueuse.id}
+                              className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                            >
+                              <td className="py-3 px-4 font-mono text-sm text-gray-700">{joueuse.compte_id}</td>
+                              <td className="py-3 px-4 font-medium text-gray-800">{joueuse.pseudo_ingame}</td>
+                              <td className="py-3 px-4">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm text-gray-600">{joueuse.pseudo_facebook}</span>
+                                  <button
+                                    onClick={() => copyToClipboard(joueuse.pseudo_facebook)}
+                                    className="p-1 hover:text-[#f8c741]"
+                                  >
+                                    <Copy className="w-3 h-3 text-gray-400" />
+                                  </button>
+                                </div>
+                              </td>
+                              <td className="py-3 px-4 text-sm text-gray-600">{joueuse.pseudo_discord}</td>
+                              <td className="py-3 px-4">
+                                {joueuse.handcam === 'Oui' ? (
+                                  <CheckCircle className="w-5 h-5 text-green-500" />
+                                ) : (
+                                  <span className="text-gray-400">—</span>
+                                )}
+                              </td>
+                              <td className="py-3 px-4 text-sm text-gray-600">
+                                {new Date(joueuse.date_inscription).toLocaleDateString('fr-FR')}
+                              </td>
+                              <td className="py-3 px-4">
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => handleViewDetails('individuel', joueuse)}
+                                    className="p-1 hover:text-[#f8c741] transition-colors"
+                                    title="Voir détails"
+                                  >
+                                    <Eye className="w-4 h-4 text-gray-400 hover:text-[#f8c741]" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleEdit(joueuse)}
+                                    className="p-1 hover:text-[#f8c741] transition-colors"
+                                    title="Modifier"
+                                  >
+                                    <Edit className="w-4 h-4 text-gray-400 hover:text-[#f8c741]" />
+                                  </button>
+                                  <button
+                                    onClick={() => confirmDelete('individuel', joueuse.id)}
+                                    className="p-1 hover:text-red-500 transition-colors"
+                                    title="Supprimer"
+                                  >
+                                    <Trash2 className="w-4 h-4 text-gray-400 hover:text-red-500" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Pagination Femina */}
+                    {totalPagesFemina > 1 && (
+                      <div className="flex items-center justify-between p-4 border-t border-gray-200 bg-gray-50">
+                        <p className="text-sm text-gray-600">
+                          Affichage {startIndexFemina + 1} à {Math.min(endIndexFemina, joueusesFiltrees.length)} sur {joueusesFiltrees.length}
+                        </p>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setCurrentPageFemina(p => Math.max(1, p - 1))}
+                            disabled={currentPageFemina === 1}
+                            className="p-2 rounded-lg bg-white border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                          >
+                            <ChevronLeft className="w-4 h-4" />
+                          </button>
+                          <span className="px-4 py-2 rounded-lg bg-[#f8c741] text-white font-medium">
+                            {currentPageFemina} / {totalPagesFemina}
+                          </span>
+                          <button
+                            onClick={() => setCurrentPageFemina(p => Math.min(totalPagesFemina, p + 1))}
+                            disabled={currentPageFemina === totalPagesFemina}
+                            className="p-2 rounded-lg bg-white border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                          >
+                            <ChevronRight className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Tableau The Tournament avec toutes les informations */}
+              {selectedTournoi === 'tournament' && (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h2 className="text-lg font-semibold text-gray-800">
+                      Équipes inscrites • <span className="text-[#f8c741]">{teamsFiltrees.length}</span>
+                    </h2>
+                    <button
+                      onClick={() => handleExportCSV('tournament')}
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium bg-[#f8c741] text-white hover:bg-[#e5b53a] transition-colors shadow-sm text-sm"
+                                      >
+                          <Download className="w-4 h-4" />
+                          Export CSV
+                        </button>
+                      </div>
+
+                      <div className="bg-white rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+                        <div className="overflow-x-auto">
+                          <table className="w-full">
+                            <thead>
+                              <tr className="bg-purple-50 border-b border-gray-200">
+                                <th className="text-left py-3 px-4 text-gray-600 font-medium">Équipe</th>
+                                <th className="text-left py-3 px-4 text-gray-600 font-medium">Tag</th>
+                                <th className="text-left py-3 px-4 text-gray-600 font-medium">Capitaine</th>
+                                <th className="text-left py-3 px-4 text-gray-600 font-medium">Lien FB</th>
+                                <th className="text-left py-3 px-4 text-gray-600 font-medium">Joueur 1</th>
+                                <th className="text-left py-3 px-4 text-gray-600 font-medium">Joueur 2</th>
+                                <th className="text-left py-3 px-4 text-gray-600 font-medium">Joueur 3</th>
+                                <th className="text-left py-3 px-4 text-gray-600 font-medium">Joueur 4</th>
+                                <th className="text-left py-3 px-4 text-gray-600 font-medium">Remplaçant 1</th>
+                                <th className="text-left py-3 px-4 text-gray-600 font-medium">Remplaçant 2</th>
+                                <th className="text-left py-3 px-4 text-gray-600 font-medium">Paiement</th>
+                                <th className="text-left py-3 px-4 text-gray-600 font-medium">Réf</th>
+                                <th className="text-left py-3 px-4 text-gray-600 font-medium">Date Paiement</th>
+                                <th className="text-left py-3 px-4 text-gray-600 font-medium">Preuve</th>
+                                <th className="text-left py-3 px-4 text-gray-600 font-medium">Règles</th>
+                                <th className="text-left py-3 px-4 text-gray-600 font-medium">Décision</th>
+                                <th className="text-left py-3 px-4 text-gray-600 font-medium">Date Insc</th>
+                                <th className="text-left py-3 px-4 text-gray-600 font-medium">Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {teamsPaginees.map((team) => (
+                                <tr 
+                                  key={team.id}
+                                  className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                                >
+                                  <td className="py-3 px-4 font-medium text-gray-800">{team.teamName}</td>
+                                  <td className="py-3 px-4 text-sm text-gray-600">{team.teamTag || '—'}</td>
+                                  <td className="py-3 px-4 text-sm text-gray-600">{team.captainName}</td>
+                                  <td className="py-3 px-4">
+                                    <button
+                                      onClick={() => copyToClipboard(team.captainLink)}
+                                      className="text-xs text-[#f8c741] hover:underline flex items-center gap-1"
+                                    >
+                                      <Facebook className="w-3 h-3" />
+                                      Lien
+                                    </button>
+                                  </td>
+                                  <td className="py-3 px-4">
+                                    {team.player1Name && (
+                                      <div className="text-xs">
+                                        <span className="font-medium">{team.player1Name}</span>
+                                        <span className="text-gray-500 block">ID: {team.player1Id}</span>
+                                      </div>
+                                    )}
+                                  </td>
+                                  <td className="py-3 px-4">
+                                    {team.player2Name && (
+                                      <div className="text-xs">
+                                        <span className="font-medium">{team.player2Name}</span>
+                                        <span className="text-gray-500 block">ID: {team.player2Id}</span>
+                                      </div>
+                                    )}
+                                  </td>
+                                  <td className="py-3 px-4">
+                                    {team.player3Name && (
+                                      <div className="text-xs">
+                                        <span className="font-medium">{team.player3Name}</span>
+                                        <span className="text-gray-500 block">ID: {team.player3Id}</span>
+                                      </div>
+                                    )}
+                                  </td>
+                                  <td className="py-3 px-4">
+                                    {team.player4Name && (
+                                      <div className="text-xs">
+                                        <span className="font-medium">{team.player4Name}</span>
+                                        <span className="text-gray-500 block">ID: {team.player4Id}</span>
+                                      </div>
+                                    )}
+                                  </td>
+                                  <td className="py-3 px-4">
+                                    {team.sub1Name && (
+                                      <div className="text-xs">
+                                        <span className="font-medium">{team.sub1Name}</span>
+                                        <span className="text-gray-500 block">ID: {team.sub1Id}</span>
+                                      </div>
+                                    )}
+                                  </td>
+                                  <td className="py-3 px-4">
+                                    {team.sub2Name && (
+                                      <div className="text-xs">
+                                        <span className="font-medium">{team.sub2Name}</span>
+                                        <span className="text-gray-500 block">ID: {team.sub2Id}</span>
+                                      </div>
+                                    )}
+                                  </td>
+                                  <td className="py-3 px-4">
+                                    <span className="text-xs px-2 py-1 bg-purple-100 text-purple-600 rounded-full">
+                                      {team.paymentMethod}
+                                    </span>
+                                  </td>
+                                  <td className="py-3 px-4 text-sm text-gray-600 font-mono">{team.paymentRef}</td>
+                                  <td className="py-3 px-4 text-sm text-gray-600">
+                                    {new Date(team.paymentDate).toLocaleDateString('fr-FR')}
+                                  </td>
+                                  <td className="py-3 px-4">
+                                    {team.paymentImage ? (
+                                      <span className="text-xs text-green-600">✓ Uploadé</span>
+                                    ) : (
+                                      <span className="text-xs text-gray-400">—</span>
+                                    )}
+                                  </td>
+                                  <td className="py-3 px-4 text-center">
+                                    {team.termsAccepted ? (
+                                      <CheckCircle className="w-4 h-4 text-green-500 mx-auto" />
+                                    ) : (
+                                      <span className="text-gray-400">—</span>
+                                    )}
+                                  </td>
+                                  <td className="py-3 px-4 text-center">
+                                    {team.rulesAccepted ? (
+                                      <CheckCircle className="w-4 h-4 text-green-500 mx-auto" />
+                                    ) : (
+                                      <span className="text-gray-400">—</span>
+                                    )}
+                                  </td>
+                                  <td className="py-3 px-4 text-sm text-gray-600">
+                                    {new Date(team.createdAt).toLocaleDateString('fr-FR')}
+                                  </td>
+                                  <td className="py-3 px-4">
+                                    <div className="flex gap-2">
+                                      <button
+                                        onClick={() => handleViewDetails('equipe', team)}
+                                        className="p-1 hover:text-[#f8c741] transition-colors"
+                                        title="Voir détails"
+                                      >
+                                        <Eye className="w-4 h-4 text-gray-400 hover:text-[#f8c741]" />
+                                      </button>
+                                      <button
+                                        onClick={() => confirmDelete('equipe', team.id)}
+                                        className="p-1 hover:text-red-500 transition-colors"
+                                        title="Supprimer"
+                                      >
+                                        <Trash2 className="w-4 h-4 text-gray-400 hover:text-red-500" />
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Pagination Tournament */}
+                        {totalPagesTournament > 1 && (
+                          <div className="flex items-center justify-between p-4 border-t border-gray-200 bg-gray-50">
+                            <p className="text-sm text-gray-600">
+                              Affichage {startIndexTournament + 1} à {Math.min(endIndexTournament, teamsFiltrees.length)} sur {teamsFiltrees.length}
+                            </p>
                             <div className="flex gap-2">
                               <button
-                                onClick={() => handleViewDetails(joueuse)}
-                                className="p-1 hover:opacity-60"
-                                title="Voir détails"
+                                onClick={() => setCurrentPageTournament(p => Math.max(1, p - 1))}
+                                disabled={currentPageTournament === 1}
+                                className="p-2 rounded-lg bg-white border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50"
                               >
-                                <Eye className="w-4 h-4" style={{ color: '#3b82f6' }} />
+                                <ChevronLeft className="w-4 h-4" />
                               </button>
+                              <span className="px-4 py-2 rounded-lg bg-[#f8c741] text-white font-medium">
+                                {currentPageTournament} / {totalPagesTournament}
+                              </span>
                               <button
-                                onClick={() => handleEdit(joueuse)}
-                                className="p-1 hover:opacity-60"
-                                title="Modifier"
+                                onClick={() => setCurrentPageTournament(p => Math.min(totalPagesTournament, p + 1))}
+                                disabled={currentPageTournament === totalPagesTournament}
+                                className="p-2 rounded-lg bg-white border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50"
                               >
-                                <Edit className="w-4 h-4" style={{ color: '#f8c741' }} />
-                              </button>
-                              <button
-                                onClick={() => confirmDelete(joueuse.id)}
-                                className="p-1 hover:opacity-60"
-                                title="Supprimer"
-                              >
-                                <Trash2 className="w-4 h-4" style={{ color: '#ef4444' }} />
+                                <ChevronRight className="w-4 h-4" />
                               </button>
                             </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Pagination */}
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-between p-4 border-t" style={{ borderColor: '#f8c741' }}>
-                    <p style={{ color: '#826d4a' }}>
-                      Affichage {startIndex + 1} à {Math.min(endIndex, joueusesFiltrees.length)} sur {joueusesFiltrees.length} inscriptions
-                    </p>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                        disabled={currentPage === 1}
-                        className="p-2 rounded-lg disabled:opacity-50"
-                        style={{ backgroundColor: '#f8c741', color: '#292929' }}
-                      >
-                        <ChevronLeft className="w-4 h-4" />
-                      </button>
-                      <span className="px-4 py-2 rounded-lg" style={{ backgroundColor: '#f8c741', color: '#292929' }}>
-                        {currentPage} / {totalPages}
-                      </span>
-                      <button
-                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                        disabled={currentPage === totalPages}
-                        className="p-2 rounded-lg disabled:opacity-50"
-                        style={{ backgroundColor: '#f8c741', color: '#292929' }}
-                      >
-                        <ChevronRight className="w-4 h-4" />
-                      </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
+                  )}
+              
+
+
+
             </>
           )}
         </div>
       </div>
 
-      {/* Carte détail */}
-      {showDetailCard && selectedJoueuse && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="max-w-md w-full rounded-2xl overflow-hidden" style={{ backgroundColor: '#ffffff', border: '2px solid #f8c741' }}>
-            <div className="p-6 border-b flex justify-between items-center" style={{ borderColor: '#f8c741' }}>
-              <h2 className="text-2xl font-bold flex items-center gap-2" style={{ color: '#292929' }}>
-                <Info className="w-5 h-5" style={{ color: '#f8c741' }} />
-                Détails de l&apos;inscription
+      {/* Modals de détail pour Femina */}
+      {showDetailCard && detailType === 'individuel' && selectedJoueuse && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="max-w-md w-full bg-white rounded-2xl shadow-xl border-2 border-[#f8c741]">
+            <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+              <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
+                <User className="w-5 h-5 text-[#f8c741]" />
+                Détails inscription
               </h2>
               <button
                 onClick={() => setShowDetailCard(false)}
-                className="p-2 rounded-full hover:bg-gray-100"
+                className="p-2 rounded-lg hover:bg-gray-100"
               >
-                <X className="w-5 h-5" style={{ color: '#292929' }} />
+                <X className="w-5 h-5 text-gray-600" />
               </button>
             </div>
+            
             <div className="p-6 space-y-4">
-              <div className="flex items-center gap-3 p-3 rounded-lg" style={{ backgroundColor: '#f8c741', opacity: 0.9 }}>
-                <Gamepad2 className="w-5 h-5" style={{ color: '#292929' }} />
-                <div>
-                  <p className="text-xs" style={{ color: '#292929', opacity: 0.7 }}>ID Compte</p>
-                  <p className="font-bold" style={{ color: '#292929' }}>{selectedJoueuse.compte_id}</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2 p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs text-gray-500">ID Compte</p>
+                  <p className="font-mono font-medium text-gray-800">{selectedJoueuse.compte_id}</p>
                 </div>
-              </div>
-              
-              <div className="flex items-center gap-3 p-3 rounded-lg" style={{ backgroundColor: '#f8c741', opacity: 0.9 }}>
-                <Gamepad2 className="w-5 h-5" style={{ color: '#292929' }} />
-                <div>
-                  <p className="text-xs" style={{ color: '#292929', opacity: 0.7 }}>Pseudo In Game</p>
-                  <p className="font-bold" style={{ color: '#292929' }}>{selectedJoueuse.pseudo_ingame}</p>
+                <div className="col-span-2 p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs text-gray-500">Pseudo In Game</p>
+                  <p className="font-medium text-gray-800">{selectedJoueuse.pseudo_ingame}</p>
                 </div>
-              </div>
-
-              <div className="flex items-center gap-3 p-3 rounded-lg" style={{ backgroundColor: '#f8c741', opacity: 0.9 }}>
-                <Facebook className="w-5 h-5" style={{ color: '#292929' }} />
-                <div className="flex-1">
-                  <p className="text-xs" style={{ color: '#292929', opacity: 0.7 }}>Facebook</p>
+                <div className="col-span-2 p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs text-gray-500">Facebook</p>
                   <div className="flex items-center justify-between">
-                    <p className="font-bold" style={{ color: '#292929' }}>{selectedJoueuse.pseudo_facebook}</p>
+                    <p className="font-medium text-gray-800">{selectedJoueuse.pseudo_facebook}</p>
                     <button
                       onClick={() => copyToClipboard(selectedJoueuse.pseudo_facebook)}
-                      className="p-1 hover:opacity-60"
+                      className="p-1 hover:text-[#f8c741]"
                     >
-                      <Copy className="w-4 h-4" style={{ color: '#3b82f6' }} />
+                      <Copy className="w-4 h-4 text-gray-400" />
                     </button>
                   </div>
                 </div>
-              </div>
-
-              <div className="flex items-center gap-3 p-3 rounded-lg" style={{ backgroundColor: '#f8c741', opacity: 0.9 }}>
-                <MessageCircle className="w-5 h-5" style={{ color: '#292929' }} />
-                <div>
-                  <p className="text-xs" style={{ color: '#292929', opacity: 0.7 }}>Discord</p>
-                  <p className="font-bold" style={{ color: '#292929' }}>{selectedJoueuse.pseudo_discord}</p>
+                <div className="col-span-2 p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs text-gray-500">Discord</p>
+                  <p className="font-medium text-gray-800">{selectedJoueuse.pseudo_discord}</p>
                 </div>
-              </div>
-
-              <div className="flex items-center gap-3 p-3 rounded-lg" style={{ backgroundColor: '#f8c741', opacity: 0.9 }}>
-                {selectedJoueuse.handcam === 'Oui' ? (
-                  <CheckCircle className="w-5 h-5" style={{ color: '#22c55e' }} />
-                ) : (
-                  <XCircle className="w-5 h-5" style={{ color: '#ef4444' }} />
-                )}
-                <div>
-                  <p className="text-xs" style={{ color: '#292929', opacity: 0.7 }}>Handcam</p>
-                  <p className="font-bold" style={{ color: '#292929' }}>{selectedJoueuse.handcam}</p>
+                <div className="col-span-2 p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs text-gray-500">Handcam</p>
+                  <p className="font-medium text-gray-800">{selectedJoueuse.handcam}</p>
                 </div>
-              </div>
-
-              <div className="flex items-center gap-3 p-3 rounded-lg" style={{ backgroundColor: '#f8c741', opacity: 0.9 }}>
-                <Calendar className="w-5 h-5" style={{ color: '#292929' }} />
-                <div>
-                  <p className="text-xs" style={{ color: '#292929', opacity: 0.7 }}>Date d&apos;inscription</p>
-                  <p className="font-bold" style={{ color: '#292929' }}>
+                <div className="col-span-2 p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs text-gray-500">Date d&apos;inscription</p>
+                  <p className="font-medium text-gray-800">
                     {new Date(selectedJoueuse.date_inscription).toLocaleString('fr-FR')}
                   </p>
                 </div>
               </div>
             </div>
-            <div className="p-6 border-t flex justify-end" style={{ borderColor: '#f8c741' }}>
+            
+            <div className="p-6 border-t border-gray-200 flex justify-end">
               <button
                 onClick={() => setShowDetailCard(false)}
-                className="px-6 py-2 rounded-lg font-semibold"
-                style={{ backgroundColor: '#f8c741', color: '#292929' }}
+                className="px-6 py-2 rounded-lg font-medium bg-[#f8c741] text-white hover:bg-[#e5b53a]"
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modals de détail pour Tournament */}
+      {showDetailCard && detailType === 'equipe' && selectedTeam && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="max-w-2xl w-full bg-white rounded-2xl shadow-xl border-2 border-[#f8c741] max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white">
+              <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
+                <Users2 className="w-5 h-5 text-[#f8c741]" />
+                Détails équipe
+              </h2>
+              <button
+                onClick={() => setShowDetailCard(false)}
+                className="p-2 rounded-lg hover:bg-gray-100"
+              >
+                <X className="w-5 h-5 text-gray-600" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2 p-4 bg-purple-50 rounded-lg">
+                  <p className="text-xs text-purple-600 mb-1">Équipe</p>
+                  <p className="font-bold text-gray-800 text-lg">{selectedTeam.teamName}</p>
+                  {selectedTeam.teamTag && (
+                    <p className="text-sm text-gray-500">Tag: {selectedTeam.teamTag}</p>
+                  )}
+                  <p className="text-xs text-gray-500 mt-2">Code: {selectedTeam.registrationCode}</p>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                  <User className="w-4 h-4 text-[#f8c741]" />
+                  Capitaine
+                </h3>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p className="font-medium text-gray-800">{selectedTeam.captainName}</p>
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-sm text-gray-600">{selectedTeam.captainLink}</span>
+                    <button
+                      onClick={() => copyToClipboard(selectedTeam.captainLink)}
+                      className="p-1 hover:text-[#f8c741]"
+                    >
+                      <Copy className="w-4 h-4 text-gray-400" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                  <Gamepad2 className="w-4 h-4 text-[#f8c741]" />
+                  Joueurs titulaires
+                </h3>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { id: selectedTeam.player1Id, name: selectedTeam.player1Name, num: 1 },
+                    { id: selectedTeam.player2Id, name: selectedTeam.player2Name, num: 2 },
+                    { id: selectedTeam.player3Id, name: selectedTeam.player3Name, num: 3 },
+                    { id: selectedTeam.player4Id, name: selectedTeam.player4Name, num: 4 },
+                  ].map((joueur, idx) => joueur.name && (
+                    <div key={idx} className="bg-gray-50 p-3 rounded-lg">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-bold bg-[#f8c741] text-white w-5 h-5 rounded-full flex items-center justify-center">
+                          {joueur.num}
+                        </span>
+                        <span className="font-medium text-gray-800">{joueur.name}</span>
+                      </div>
+                      {joueur.id && (
+                        <p className="text-xs text-gray-500 ml-7">ID: {joueur.id}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {(selectedTeam.sub1Name || selectedTeam.sub2Name) && (
+                <div>
+                  <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                    <Users className="w-4 h-4 text-[#f8c741]" />
+                    Remplaçants
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { id: selectedTeam.sub1Id, name: selectedTeam.sub1Name, num: 'R1' },
+                      { id: selectedTeam.sub2Id, name: selectedTeam.sub2Name, num: 'R2' },
+                    ].map((joueur, idx) => joueur.name && (
+                      <div key={idx} className="bg-gray-50 p-3 rounded-lg border border-dashed border-gray-300">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs font-bold bg-gray-400 text-white w-5 h-5 rounded-full flex items-center justify-center">
+                            {joueur.num}
+                          </span>
+                          <span className="font-medium text-gray-800">{joueur.name}</span>
+                        </div>
+                        {joueur.id && (
+                          <p className="text-xs text-gray-500 ml-7">ID: {joueur.id}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                  <CreditCard className="w-4 h-4 text-[#f8c741]" />
+                  Paiement
+                </h3>
+                <div className="bg-gray-50 p-4 rounded-lg grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs text-gray-500">Méthode</p>
+                    <p className="font-medium text-gray-800">{selectedTeam.paymentMethod}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Référence</p>
+                    <p className="font-medium text-gray-800">{selectedTeam.paymentRef}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-xs text-gray-500">Date</p>
+                    <p className="font-medium text-gray-800">
+                      {new Date(selectedTeam.paymentDate).toLocaleDateString('fr-FR')}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-6 border-t border-gray-200 flex justify-end">
+              <button
+                onClick={() => setShowDetailCard(false)}
+                className="px-6 py-2 rounded-lg font-medium bg-[#f8c741] text-white hover:bg-[#e5b53a]"
               >
                 Fermer
               </button>
@@ -661,58 +1010,54 @@ const handleDelete = async () => {
 
       {/* Modal de modification */}
       {showEditModal && editingJoueuse && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="max-w-md w-full rounded-2xl overflow-hidden" style={{ backgroundColor: '#ffffff', border: '2px solid #f8c741' }}>
-            <div className="p-6 border-b flex justify-between items-center" style={{ borderColor: '#f8c741' }}>
-              <h2 className="text-2xl font-bold" style={{ color: '#292929' }}>Modifier l&apos;inscription</h2>
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="max-w-md w-full bg-white rounded-2xl shadow-xl border-2 border-[#f8c741]">
+            <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+              <h2 className="text-xl font-semibold text-gray-800">Modifier l&apos;inscription</h2>
               <button
                 onClick={() => setShowEditModal(false)}
-                className="p-2 rounded-full hover:bg-gray-100"
+                className="p-2 rounded-lg hover:bg-gray-100"
               >
-                <X className="w-5 h-5" style={{ color: '#292929' }} />
+                <X className="w-5 h-5 text-gray-600" />
               </button>
             </div>
             <form onSubmit={(e) => { e.preventDefault(); handleSaveEdit(); }} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1" style={{ color: '#292929' }}>Pseudo In Game</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Pseudo In Game</label>
                 <input
                   type="text"
                   value={editFormData.pseudo_ingame}
                   onChange={(e) => setEditFormData({...editFormData, pseudo_ingame: e.target.value})}
-                  className="w-full px-4 py-2 rounded-lg"
-                  style={{ border: '2px solid #f8c741', backgroundColor: '#ffffff', color: '#292929' }}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 text-gray-700 focus:border-[#f8c741] focus:outline-none"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1" style={{ color: '#292929' }}>Facebook</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Facebook</label>
                 <input
                   type="text"
                   value={editFormData.pseudo_facebook}
                   onChange={(e) => setEditFormData({...editFormData, pseudo_facebook: e.target.value})}
-                  className="w-full px-4 py-2 rounded-lg"
-                  style={{ border: '2px solid #f8c741', backgroundColor: '#ffffff', color: '#292929' }}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 text-gray-700 focus:border-[#f8c741] focus:outline-none"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1" style={{ color: '#292929' }}>Discord</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Discord</label>
                 <input
                   type="text"
                   value={editFormData.pseudo_discord}
                   onChange={(e) => setEditFormData({...editFormData, pseudo_discord: e.target.value})}
-                  className="w-full px-4 py-2 rounded-lg"
-                  style={{ border: '2px solid #f8c741', backgroundColor: '#ffffff', color: '#292929' }}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 text-gray-700 focus:border-[#f8c741] focus:outline-none"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1" style={{ color: '#292929' }}>Handcam</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Handcam</label>
                 <select
                   value={editFormData.handcam}
                   onChange={(e) => setEditFormData({...editFormData, handcam: e.target.value})}
-                  className="w-full px-4 py-2 rounded-lg"
-                  style={{ border: '2px solid #f8c741', backgroundColor: '#ffffff', color: '#292929' }}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 text-gray-700 focus:border-[#f8c741] focus:outline-none"
                 >
                   <option value="Oui">Oui</option>
                   <option value="Non">Non</option>
@@ -721,8 +1066,7 @@ const handleDelete = async () => {
               <div className="flex gap-3 pt-4">
                 <button
                   type="submit"
-                  className="flex-1 py-2 rounded-lg font-semibold flex items-center justify-center gap-2"
-                  style={{ backgroundColor: '#f8c741', color: '#292929' }}
+                  className="flex-1 py-2 rounded-lg font-medium bg-[#f8c741] text-white hover:bg-[#e5b53a] transition-colors flex items-center justify-center gap-2"
                 >
                   <Save className="w-4 h-4" />
                   Enregistrer
@@ -730,8 +1074,7 @@ const handleDelete = async () => {
                 <button
                   type="button"
                   onClick={() => setShowEditModal(false)}
-                  className="flex-1 py-2 rounded-lg font-semibold"
-                  style={{ backgroundColor: '#ffffff', color: '#826d4a', border: '2px solid #f8c741' }}
+                  className="flex-1 py-2 rounded-lg font-medium bg-white text-gray-700 border-2 border-gray-300 hover:bg-gray-50"
                 >
                   Annuler
                 </button>
@@ -743,24 +1086,28 @@ const handleDelete = async () => {
 
       {/* Confirmation de suppression */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="max-w-sm w-full rounded-2xl overflow-hidden" style={{ backgroundColor: '#ffffff', border: '2px solid #f8c741' }}>
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="max-w-sm w-full bg-white rounded-2xl shadow-xl border-2 border-red-200">
             <div className="p-6 text-center">
-              <Trash2 className="w-12 h-12 mx-auto mb-4" style={{ color: '#ef4444' }} />
-              <h2 className="text-xl font-bold mb-2" style={{ color: '#292929' }}>Confirmer la suppression</h2>
-              <p className="mb-6" style={{ color: '#826d4a' }}>Cette action est irréversible. Voulez-vous vraiment supprimer cette inscription ?</p>
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trash2 className="w-8 h-8 text-red-500" />
+              </div>
+              <h2 className="text-xl font-semibold text-gray-800 mb-2">Confirmer la suppression</h2>
+              <p className="text-gray-600 mb-6">
+                {deleteConfirm?.type === 'individuel' 
+                  ? 'Cette inscription individuelle sera supprimée.'
+                  : 'Cette équipe et tous ses joueurs seront supprimés.'}
+              </p>
               <div className="flex gap-3">
                 <button
                   onClick={handleDelete}
-                  className="flex-1 py-2 rounded-lg font-semibold"
-                  style={{ backgroundColor: '#ef4444', color: '#ffffff' }}
+                  className="flex-1 py-2 rounded-lg font-medium bg-red-500 text-white hover:bg-red-600"
                 >
                   Supprimer
                 </button>
                 <button
                   onClick={() => setShowDeleteConfirm(false)}
-                  className="flex-1 py-2 rounded-lg font-semibold"
-                  style={{ backgroundColor: '#ffffff', color: '#826d4a', border: '2px solid #f8c741' }}
+                  className="flex-1 py-2 rounded-lg font-medium bg-white text-gray-700 border-2 border-gray-300 hover:bg-gray-50"
                 >
                   Annuler
                 </button>

@@ -39,7 +39,7 @@ export default function Navbar() {
             </span>
           </Link>
 
-          {/* Menu desktop */}
+          
           <div className="hidden md:flex space-x-1">
             {links.map((link) => {
               const Icon = link.icon;
@@ -64,7 +64,7 @@ export default function Navbar() {
             })}
           </div>
 
-          {/* Menu mobile button */}
+          
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             className="md:hidden p-2 rounded-lg"
@@ -78,7 +78,7 @@ export default function Navbar() {
           </button>
         </div>
 
-        {/* Menu mobile dropdown */}
+        
         {isMenuOpen && (
           <div className="md:hidden py-4 border-t" style={{ borderColor: '#f8c741' }}>
             {links.map((link) => {
