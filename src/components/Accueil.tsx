@@ -219,7 +219,7 @@ export default function Accueil() {
       <div className="grid md:grid-cols-2 gap-8 items-center">
         <div>
           <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-4">
-            Prête à relever le défi ?
+            Prêt à relever le défi ?
           </h2>
           <p className="text-gray-500 mb-6">
             Rejoins la communauté et montre tes talents
