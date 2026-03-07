@@ -166,10 +166,10 @@ export default function TournoiDetail({
               <div className="flex justify-between items-end">
                 <div>
                   <span className="text-sm uppercase tracking-wider opacity-80">{tournoi.jeu}</span>
-                  <h1 className="text-5xl font-bold mt-2">{tournoi.titre}</h1>
+                  <h1 className="text-3xl font-bold mt-2">{tournoi.titre}</h1>
                 </div>
                 <div className="text-right">
-                  <div className="text-6xl font-bold">
+                  <div className="text-4xl font-bold">
                     {new Date(tournoi.date).getDate()}
                   </div>
                   <div className="text-xl">
