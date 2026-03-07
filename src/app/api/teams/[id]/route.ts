@@ -1,21 +1,20 @@
-import { NextResponse } from 'next/server';
-import { db } from '@/db/config';
-import { teams , teamPlayers } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { NextRequest, NextResponse } from 'next/server';
 
-export async function DELETE(
-  request: Request,
-  { params }: { params: { id: string } }
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-      const id = parseInt(params.id);
-      
-  await db.delete(teamPlayers).where(eq(teamPlayers.teamId, id));
     
-      await db.delete(teams).where(eq(teams.id, id));
-      
-    return NextResponse.json({ success: true });
+    // Votre logique ici
+    const count = 0; 
+    
+    return NextResponse.json({ count: count });
   } catch {
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
+    // Sans le paramètre error
+    return NextResponse.json(
+      { error: 'Erreur serveur' },
+      { status: 500 }
+    );
   }
 }
