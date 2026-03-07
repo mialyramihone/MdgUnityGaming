@@ -85,7 +85,7 @@ export default function TournoiDetail({
       if (now > fermeture) return 'fermee';
       return 'ouverte';
     } else if (tournoi.id === 2) {
-      const ouverture = new Date('2026-03-07T00:00:00');
+      const ouverture = new Date('2026-03-06T00:00:00');
       const fermeture = new Date('2026-03-20T23:59:59');
       
       if (now < ouverture) return 'fermee';
