@@ -5,6 +5,7 @@
 
 [functions]
   directory = ".next/server/app"
-  
+  node_bundler = "esbuild"
+
 [[plugins]]
   package = "@netlify/plugin-nextjs"
