@@ -45,7 +45,7 @@ export default function TournoiList() {
       mode: 'Clash Squad',
       places: 16,
       date: '2026-03-08',
-      status: 'ouvert',
+      status: 'termine', 
       couleur: '#f8c741',
       cashPrize: ['1ère place: 20 000 FCFA', '2ème place: 10 000 FCFA', '3ème place: 5 000 FCFA'],
       reglement: [
@@ -87,24 +87,30 @@ export default function TournoiList() {
     }
   ];
 
+  
+  const countTournoi1Inscriptions = async () => {
+    try {
+      const response = await fetch('/.netlify/functions/count-teams?tournamentId=1');
+      const data = await response.json();
+      return data.count || 0;
+    } catch (error) {
+      console.error('Erreur comptage tournoi 1:', error);
+      return 0;
+    }
+  };
+
   useEffect(() => {
     const fetchInscriptionsCount = async () => {
       try {
-        const joueusesRes = await fetch('/api/joueuses');
-        const joueusesData = await joueusesRes.json();
+        
+        const count1 = await countTournoi1Inscriptions();
+        
         
         const teamsRes = await fetch('/.netlify/functions/count-teams?tournamentId=2');
         const teamsData = await teamsRes.json();
         
         const count: {[key: number]: number} = {};
-        
-        if (Array.isArray(joueusesData)) {
-          joueusesData.forEach((j: Joueuse) => {
-            if (j.tournoi_id === 1) {
-              count[1] = (count[1] || 0) + 1;
-            }
-          });
-        }
+        count[1] = count1;
         
         if (teamsData.count !== undefined) {
           count[2] = teamsData.count;
@@ -313,13 +319,18 @@ export default function TournoiList() {
                 const buttonText = getButtonText(tournoi.id, status);
                 
                 const isIllimite = tournoi.id === 2;
+                
+                
+                const isClickable = tournoi.id === 2 && status === 'ouvert';
 
                 return (
                   <div 
                     key={tournoi.id} 
-                    className="bg-white rounded-xl overflow-hidden transition-all cursor-pointer hover:shadow-xl hover:-translate-y-1 border border-gray-200"
+                    className={`bg-white rounded-xl overflow-hidden transition-all border border-gray-200 ${
+                      isClickable ? 'cursor-pointer hover:shadow-xl hover:-translate-y-1' : 'cursor-not-allowed opacity-80'
+                    }`}
                     onClick={() => {
-                      if (tournoi.id === 1 || (tournoi.id === 2 && status === 'ouvert')) {
+                      if (isClickable) {
                         setSelectedTournoi(tournoi);
                       }
                     }}
@@ -372,8 +383,15 @@ export default function TournoiList() {
                         </span>
                       </div>
 
-                      {/* Bouton Voir détails */}
-                      {(tournoi.id === 1 || (tournoi.id === 2 && status === 'ouvert')) ? (
+                      {/* Bouton Voir détails - ROUGE pour le tournoi 1 */}
+                      {tournoi.id === 1 ? (
+                        <button 
+                          className="w-full mt-2 py-2 bg-red-500 text-white rounded-lg text-sm font-medium cursor-not-allowed opacity-75"
+                          disabled
+                        >
+                          Inscriptions fermées
+                        </button>
+                      ) : (tournoi.id === 2 && status === 'ouvert') ? (
                         <button className="w-full mt-2 py-2 bg-[#f8c741] text-[#292929] rounded-lg text-sm font-medium flex items-center justify-center gap-1 hover:bg-[#f9d164] transition">
                           Voir détails
                           <ChevronRight size={16} />
