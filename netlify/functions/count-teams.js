@@ -1,11 +1,7 @@
-
-const postgres = require('postgres');
-const { drizzle } = require('drizzle-orm/postgres-js');
-const { teams } = require('../../db/schema');
-const { eq } = require('drizzle-orm');
+const { neon } = require('@neondatabase/serverless');
 
 exports.handler = async (event) => {
-  console.log('🔵 Netlify Function: count-teams appelée');
+  console.log('🔵 Fonction count-teams appelée');
   
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -13,7 +9,6 @@ exports.handler = async (event) => {
   };
 
   try {
-    
     const tournamentId = event.queryStringParameters?.tournamentId;
     
     if (!tournamentId) {
@@ -34,23 +29,22 @@ exports.handler = async (event) => {
     }
 
     
-    const connectionString = process.env.DATABASE_URL;
-    const sql = postgres(connectionString);
-    const db = drizzle(sql);
-
+    const sql = neon(process.env.DATABASE_URL);
     
-    const result = await db.select()
-      .from(teams)
-      .where(eq(teams.tournamentId, id));
+    const result = await sql`
+      SELECT COUNT(*) as count 
+      FROM teams 
+      WHERE tournament_id = ${id}
+    `;
 
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ count: result.length }),
+      body: JSON.stringify({ count: parseInt(result[0].count) }),
     };
 
   } catch (error) {
-    console.error('🔴 ERREUR:', error);
+    console.error('🔴 Erreur:', error);
     return {
       statusCode: 500,
       headers,
