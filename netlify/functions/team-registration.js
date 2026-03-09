@@ -50,34 +50,63 @@ exports.handler = async (event) => {
         
         const registrationCode = 'TT4-' + Math.random().toString(36).substring(2, 10).toUpperCase();
         
-        // INSÉRER TOUT D'UN COUP
-        const result = await sql`
+        // 1️⃣ INSÉRER L'ÉQUIPE (sans les joueurs)
+        const teamResult = await sql`
           INSERT INTO teams (
             team_name, team_tag, captain_name, captain_link,
             registration_code, payment_method, payment_ref, payment_date,
             tournament_id, terms_accepted, rules_accepted,
-            player1_id, player1_name, player2_id, player2_name,
-            player3_id, player3_name, player4_id, player4_name,
-            sub1_id, sub1_name, sub2_id, sub2_name,
             created_at
           ) VALUES (
-            ${fields.teamName}, ${fields.teamTag || ''}, ${fields.captainName}, ${fields.captainLink || ''},
+            ${fields.teamName}, 
+            ${fields.teamTag || ''}, 
+            ${fields.captainName}, 
+            ${fields.captainLink || ''},
             ${registrationCode},
-            ${fields.paymentMethod}, ${fields.paymentRef}, ${new Date(fields.paymentDate)},
+            ${fields.paymentMethod}, 
+            ${fields.paymentRef}, 
+            ${new Date(fields.paymentDate)},
             ${parseInt(fields.tournamentId)},
-            ${fields.termsAccepted === 'true'}, ${fields.rulesAccepted === 'true'},
-            ${fields.player1Id || null}, ${fields.player1Name || null},
-            ${fields.player2Id || null}, ${fields.player2Name || null},
-            ${fields.player3Id || null}, ${fields.player3Name || null},
-            ${fields.player4Id || null}, ${fields.player4Name || null},
-            ${fields.sub1Id || null}, ${fields.sub1Name || null},
-            ${fields.sub2Id || null}, ${fields.sub2Name || null},
+            ${fields.termsAccepted === 'true'}, 
+            ${fields.rulesAccepted === 'true'},
             ${new Date()}
           )
           RETURNING id
         `;
         
-        console.log('✅ Équipe insérée, ID:', result[0].id);
+        const teamId = teamResult[0].id;
+        console.log('✅ Équipe insérée, ID:', teamId);
+        
+        // 2️⃣ INSÉRER LES JOUEURS DANS team_players
+        const players = [
+          { num: 1, id: fields.player1Id, name: fields.player1Name, sub: false },
+          { num: 2, id: fields.player2Id, name: fields.player2Name, sub: false },
+          { num: 3, id: fields.player3Id, name: fields.player3Name, sub: false },
+          { num: 4, id: fields.player4Id, name: fields.player4Name, sub: false },
+          { num: 5, id: fields.sub1Id, name: fields.sub1Name, sub: true },
+          { num: 6, id: fields.sub2Id, name: fields.sub2Name, sub: true }
+        ];
+        
+        for (const player of players) {
+          if (player.id && player.name) {
+            await sql`
+              INSERT INTO team_players (
+                team_id, player_number, player_id, player_name, is_substitute, created_at
+              ) VALUES (
+                ${teamId}, 
+                ${player.num}, 
+                ${player.id}, 
+                ${player.name}, 
+                ${player.sub}, 
+                ${new Date()}
+              )
+            `;
+            console.log(`✅ Joueur ${player.num} inséré`);
+          }
+        }
+        
+        // 3️⃣ GÉRER L'IMAGE DE PAIEMENT (si besoin)
+        // Pour l'instant, on ignore l'image
         
         resolve({
           statusCode: 200,
