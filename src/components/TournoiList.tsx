@@ -93,8 +93,10 @@ export default function TournoiList() {
         const joueusesRes = await fetch('/api/joueuses');
         const joueusesData = await joueusesRes.json();
         
-        const teamsRes = await fetch('/api/count-teams?tournamentId=2');
+        const teamsRes = await fetch('/.netlify/functions/count-teams?tournamentId=2');
         const teamsData = await teamsRes.json();
+
+         console.log('📊 Réponse count-teams:', teamsData);
         
         const count: {[key: number]: number} = {};
         
