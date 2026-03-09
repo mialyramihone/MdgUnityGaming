@@ -16,23 +16,33 @@ exports.handler = async (event) => {
 
   try {
     const { fields, files } = await multipartParser.parse(event);
-    console.log('🔵 Fields reçus:', fields);
     
+    // ✅ Vérification que fields existe
+    if (!fields) {
+      console.log('🔴 fields est undefined');
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Aucune donnée reçue' })
+      };
+    }
     
+    console.log('🔵 Fields reçus:', Object.keys(fields));
+    console.log('🔵 Contenu:', fields);
+    
+    // Connexion à Neon
     const sql = neon(process.env.DATABASE_URL);
     
-    
+    // Test simple
     const result = await sql`SELECT COUNT(*) as count FROM teams`;
-    console.log('🔵 Résultat DB:', result);
     
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({ 
         success: true, 
-        message: 'Test réussi',
         count: result[0].count,
-        fields: Object.keys(fields)
+        receivedFields: Object.keys(fields)
       })
     };
 
