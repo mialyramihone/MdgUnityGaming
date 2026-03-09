@@ -3,7 +3,6 @@ import { db } from '@/db/config';
 import { teams, teamPlayers } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
-// Interface pour le type de retour
 interface TeamWithPlayers {
   id: number;
   teamName: string;
@@ -46,7 +45,6 @@ export async function GET() {
           .from(teamPlayers)
           .where(eq(teamPlayers.teamId, team.id));
         
-        // Transformer les données pour correspondre à l'interface TeamWithPlayers
         const teamDetails: TeamWithPlayers = {
           id: team.id,
           teamName: team.teamName,
@@ -77,7 +75,6 @@ export async function GET() {
           sub2Name: '',
         };
 
-        // Assigner les joueurs à leurs positions
         players.forEach((player) => {
           if (player.playerNumber === 1) {
             teamDetails.player1Id = player.playerId;

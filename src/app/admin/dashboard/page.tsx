@@ -81,7 +81,7 @@ export default function AdminDashboard() {
         setJoueuses(joueusesData);
       }
 
-      const teamsRes = await fetch('/api/teams-with-players');
+      const teamsRes = await fetch('/.netlify/functions/teams-with-players');
       const teamsData: TeamWithDetails[] = await teamsRes.json();
       if (Array.isArray(teamsData)) {
         setTeams(teamsData);
