@@ -175,6 +175,7 @@ const handleSubmit = async (): Promise<void> => {
     const text = await response.text();
     console.log('📦 RÉPONSE BRUTE:', text);
     console.log('📦 STATUS:', response.status);
+    console.log('📦 HEADERS:', response.headers.get('content-type'));
     
     try {
       const data = JSON.parse(text);
