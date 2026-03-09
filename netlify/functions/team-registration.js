@@ -8,6 +8,7 @@ exports.handler = async (event) => {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Content-Type': 'application/json'  // 👈 FORCER LE TYPE JSON
   };
 
   if (event.httpMethod === 'OPTIONS') {
@@ -18,33 +19,26 @@ exports.handler = async (event) => {
     return {
       statusCode: 405,
       headers,
-      body: JSON.stringify({ error: 'Méthode non autorisée' }),
+      body: JSON.stringify({ error: 'Méthode non autorisée' })
     };
   }
 
   try {
-    
     const { fields, files } = await multipartParser.parse(event);
+    console.log('🔵 Fields:', fields);
     
-    console.log('🔵 Fields reçus:', fields);
-    console.log('🔵 Files reçus:', files);
-
-    
+    // Validation
     if (!fields.teamName || !fields.captainName || !fields.tournamentId) {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ error: 'Champs requis manquants' }),
+        body: JSON.stringify({ error: 'Champs requis manquants' })
       };
     }
 
-    
     const sql = neon(process.env.DATABASE_URL);
-    
-    
     const registrationCode = 'TT4-' + Math.random().toString(36).substring(2, 10).toUpperCase();
 
-    
     const result = await sql`
       INSERT INTO teams (
         team_name, team_tag, captain_name, captain_link,
@@ -75,7 +69,7 @@ exports.handler = async (event) => {
         success: true, 
         registrationCode,
         message: 'Inscription réussie'
-      }),
+      })
     };
 
   } catch (error) {
@@ -83,7 +77,10 @@ exports.handler = async (event) => {
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: error.message }),
+      body: JSON.stringify({ 
+        error: error.message,
+        type: error.constructor.name
+      })
     };
   }
 };

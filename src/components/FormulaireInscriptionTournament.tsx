@@ -171,40 +171,41 @@ const handleSubmit = async (): Promise<void> => {
       body: payload
     });
     
-    const contentType = response.headers.get('content-type');
-    if (!contentType || !contentType.includes('application/json')) {
-      throw new Error('La réponse n\'est pas au format JSON');
+    // 🔴 VOIR CE QUE RETOURNE LA FONCTION
+    const text = await response.text();
+    console.log('📤 Réponse brute:', text);
+    
+    // Essayer de parser en JSON
+    try {
+      const data = JSON.parse(text);
+      console.log('📤 Données parsées:', data);
+      
+      if (!response.ok) {
+        throw new Error(data.error || `Erreur ${response.status}`);
+      }
+      
+      const code = generateRegistrationCode();
+      setRegistrationCode(code);
+      await generateQRCode(code);
+      setShowSuccess(true);
+      
+    } catch (e) {
+      console.error('❌ Pas du JSON valide:', text.substring(0, 200));
+      throw new Error('La réponse du serveur n\'est pas valide');
     }
-    
-    const data = await response.json();
-    
-    if (!response.ok) {
-      throw new Error(data.error || `Erreur ${response.status}`);
-    }
-    
-    const code = generateRegistrationCode();
-    setRegistrationCode(code);
-    await generateQRCode(code);
-    setShowSuccess(true);
     
   } catch (error: unknown) {
     let errorMessage = 'Erreur lors de l\'inscription';
-    
     if (error instanceof Error) {
       errorMessage = error.message;
     } else if (typeof error === 'string') {
       errorMessage = error;
-    } else if (error && typeof error === 'object' && 'message' in error) {
-      errorMessage = String(error.message);
     }
-    
     setErrorMessage(errorMessage);
-    
   } finally {
     setIsSubmitting(false);
   }
 };
-
 
 
 
