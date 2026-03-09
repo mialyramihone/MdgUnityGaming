@@ -119,35 +119,94 @@ export default function FormulaireInscriptionTournament({ tournoiId, onClose }: 
     updateField(key, value);
   };
 
-  const handleSubmit = async (): Promise<void> => {
-    if (!formData.termsAccepted || !formData.rulesAccepted) {
-      setErrorMessage('Veuillez accepter les conditions');
-      setTimeout(() => setErrorMessage(null), 3000);
-      return;
+  // const handleSubmit = async (): Promise<void> => {
+  //   if (!formData.termsAccepted || !formData.rulesAccepted) {
+  //     setErrorMessage('Veuillez accepter les conditions');
+  //     setTimeout(() => setErrorMessage(null), 3000);
+  //     return;
+  //   }
+    
+  //   setIsSubmitting(true);
+  //   try {
+  //     const payload = new FormData();
+  //     (Object.entries(formData) as [keyof FormDataType, unknown][]).forEach(([key, val]) => {
+  //       if (key === 'paymentImage' && val instanceof File) {
+  //         payload.append(key, val);
+  //       } else if (key !== 'paymentImage') {
+  //         payload.append(key, String(val));
+  //       }
+  //     });
+  //     payload.append('tournamentId', String(tournoiId));
+      
+  //     await fetch('/api/team-registration', { method: 'POST', body: payload });
+      
+  //     const code = generateRegistrationCode();
+  //     setRegistrationCode(code);
+  //     await generateQRCode(code);
+  //     setShowSuccess(true);
+  //   } finally {
+  //     setIsSubmitting(false);
+  //   }
+  // };
+
+
+const handleSubmit = async (): Promise<void> => {
+  setIsSubmitting(true);
+  setErrorMessage(null);
+  
+  try {
+    const payload = new FormData();
+    
+    Object.entries(formData).forEach(([key, value]) => {
+      if (key === 'paymentImage' && value instanceof File) {
+        payload.append(key, value);
+      } else if (key !== 'paymentImage') {
+        payload.append(key, String(value));
+      }
+    });
+    payload.append('tournamentId', String(tournoiId));
+    
+    const response = await fetch('/.netlify/functions/team-registration', {
+      method: 'POST',
+      body: payload
+    });
+    
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      throw new Error('La réponse n\'est pas au format JSON');
     }
     
-    setIsSubmitting(true);
-    try {
-      const payload = new FormData();
-      (Object.entries(formData) as [keyof FormDataType, unknown][]).forEach(([key, val]) => {
-        if (key === 'paymentImage' && val instanceof File) {
-          payload.append(key, val);
-        } else if (key !== 'paymentImage') {
-          payload.append(key, String(val));
-        }
-      });
-      payload.append('tournamentId', String(tournoiId));
-      
-      await fetch('/api/team-registration', { method: 'POST', body: payload });
-      
-      const code = generateRegistrationCode();
-      setRegistrationCode(code);
-      await generateQRCode(code);
-      setShowSuccess(true);
-    } finally {
-      setIsSubmitting(false);
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.error || `Erreur ${response.status}`);
     }
-  };
+    
+    const code = generateRegistrationCode();
+    setRegistrationCode(code);
+    await generateQRCode(code);
+    setShowSuccess(true);
+    
+  } catch (error: unknown) {
+    let errorMessage = 'Erreur lors de l\'inscription';
+    
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    } else if (typeof error === 'string') {
+      errorMessage = error;
+    } else if (error && typeof error === 'object' && 'message' in error) {
+      errorMessage = String(error.message);
+    }
+    
+    setErrorMessage(errorMessage);
+    
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
+
+
 
   const pages: PageType[] = [
     { title: 'Équipe', icon: Trophy, subtitle: 'Informations' },
