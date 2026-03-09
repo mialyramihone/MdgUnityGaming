@@ -8,10 +8,11 @@ import {
   LogOut, Menu, Settings, Eye, Edit, Copy, 
   Save, X, 
   ChevronLeft, ChevronRight, Bell, Shield, Grid, Users2,
-  Sparkles, Sword, CreditCard, User,
-  Facebook, Gamepad2, Calendar, Clock
+  Sword, CreditCard, User,
+  Facebook, Gamepad2, FileDown, FileSpreadsheet
 } from 'lucide-react';
-import { Joueuse, Team } from '@/types/tournoi';
+import { Team } from '@/types/tournoi';
+import * as XLSX from 'xlsx';
 
 interface TeamWithDetails extends Team {
   player1Id: string;
@@ -28,37 +29,21 @@ interface TeamWithDetails extends Team {
   sub2Name: string;
 }
 
-type TournoiType = 'femina' | 'tournament';
-
 export default function AdminDashboard() {
   const router = useRouter();
-  const [joueuses, setJoueuses] = useState<Joueuse[]>([]);
   const [teams, setTeams] = useState<TeamWithDetails[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
   const [activeTab, setActiveTab] = useState<string>('dashboard');
-  const [selectedTournoi, setSelectedTournoi] = useState<TournoiType>('femina');
   
-  const [selectedJoueuse, setSelectedJoueuse] = useState<Joueuse | null>(null);
   const [selectedTeam, setSelectedTeam] = useState<TeamWithDetails | null>(null);
   const [showDetailCard, setShowDetailCard] = useState<boolean>(false);
-  const [detailType, setDetailType] = useState<'individuel' | 'equipe'>('individuel');
   
-  const [editingJoueuse, setEditingJoueuse] = useState<Joueuse | null>(null);
-  const [showEditModal, setShowEditModal] = useState<boolean>(false);
-  const [editFormData, setEditFormData] = useState({
-    pseudo_ingame: '',
-    pseudo_facebook: '',
-    pseudo_discord: '',
-    handcam: ''
-  });
-  
-  const [deleteConfirm, setDeleteConfirm] = useState<{type: 'individuel' | 'equipe', id: number} | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{id: number} | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
   
-  const [currentPageFemina, setCurrentPageFemina] = useState<number>(1);
-  const [currentPageTournament, setCurrentPageTournament] = useState<number>(1);
+  const [currentPage, setCurrentPage] = useState<number>(1);
   const itemsPerPage: number = 10;
 
   useEffect(() => {
@@ -75,12 +60,6 @@ export default function AdminDashboard() {
   const fetchAllData = async (): Promise<void> => {
     setLoading(true);
     try {
-      const joueusesRes = await fetch('/api/joueuses');
-      const joueusesData: Joueuse[] = await joueusesRes.json();
-      if (Array.isArray(joueusesData)) {
-        setJoueuses(joueusesData);
-      }
-
       const teamsRes = await fetch('/.netlify/functions/teams-with-players');
       const teamsData: TeamWithDetails[] = await teamsRes.json();
       if (Array.isArray(teamsData)) {
@@ -103,59 +82,9 @@ export default function AdminDashboard() {
     alert('Copié !');
   };
 
-  const handleViewDetails = (type: 'individuel' | 'equipe', data: Joueuse | TeamWithDetails): void => {
-    setDetailType(type);
-    if (type === 'individuel') {
-      setSelectedJoueuse(data as Joueuse);
-    } else {
-      setSelectedTeam(data as TeamWithDetails);
-    }
+  const handleViewDetails = (team: TeamWithDetails): void => {
+    setSelectedTeam(team);
     setShowDetailCard(true);
-  };
-
-  const handleEdit = (joueuse: Joueuse): void => {
-    setEditingJoueuse(joueuse);
-    setEditFormData({
-      pseudo_ingame: joueuse.pseudo_ingame,
-      pseudo_facebook: joueuse.pseudo_facebook,
-      pseudo_discord: joueuse.pseudo_discord,
-      handcam: joueuse.handcam
-    });
-    setShowEditModal(true);
-  };
-
-  const handleSaveEdit = async (): Promise<void> => {
-    if (!editingJoueuse) return;
-
-    try {
-      const updatedData = {
-        compte_id: editingJoueuse.compte_id,
-        pseudo_ingame: editFormData.pseudo_ingame,
-        pseudo_facebook: editFormData.pseudo_facebook,
-        pseudo_discord: editFormData.pseudo_discord,
-        handcam: editFormData.handcam,
-        tournoi_id: editingJoueuse.tournoi_id
-      };
-
-      const res = await fetch(`/api/joueuses/${editingJoueuse.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedData)
-      });
-
-      if (res.ok) {
-        setShowEditModal(false);
-        setEditingJoueuse(null);
-        await fetchAllData();
-        alert('Modification réussie !');
-      } else {
-        const errorData = await res.json();
-        alert(`Erreur: ${errorData.error || 'Erreur inconnue'}`);
-      }
-    } catch {
-      console.error('Erreur lors de la modification');
-      alert('Erreur de connexion');
-    }
   };
 
   const handleDeleteTeam = async (teamId: number): Promise<void> => {
@@ -177,139 +106,102 @@ export default function AdminDashboard() {
     }
   };
 
-            const handleExportCSV = (type: 'femina' | 'tournament'): void => {
-              
-              let headers: string[] = [];
-              let csvData: string[][] = [];
+  const handleExportExcel = (): void => {
+    // Préparer les données pour Excel
+    const excelData = teamsFiltrees.map((t: TeamWithDetails) => ({
+      'Code': t.registrationCode,
+      'Équipe': t.teamName,
+      'Tag': t.teamTag || '',
+      'Capitaine': t.captainName,
+      'Lien FB': t.captainLink,
+      'J1 ID': t.player1Id || '',
+      'J1 Pseudo': t.player1Name || '',
+      'J2 ID': t.player2Id || '',
+      'J2 Pseudo': t.player2Name || '',
+      'J3 ID': t.player3Id || '',
+      'J3 Pseudo': t.player3Name || '',
+      'J4 ID': t.player4Id || '',
+      'J4 Pseudo': t.player4Name || '',
+      'R1 ID': t.sub1Id || '',
+      'R1 Pseudo': t.sub1Name || '',
+      'R2 ID': t.sub2Id || '',
+      'R2 Pseudo': t.sub2Name || '',
+      'Paiement': t.paymentMethod,
+      'Référence': t.paymentRef,
+      'Date Paiement': new Date(t.paymentDate).toLocaleDateString('fr-FR'),
+      'Règles': t.termsAccepted ? 'Oui' : 'Non',
+      'Décision': t.rulesAccepted ? 'Oui' : 'Non',
+      'Date Inscription': new Date(t.createdAt).toLocaleDateString('fr-FR')
+    }));
 
-              if (type === 'femina') {
-                headers = ['ID Compte', 'Pseudo', 'Facebook', 'Discord', 'Handcam', 'Date'];
-                csvData = joueusesFiltrees.map((j: Joueuse) => [
-                  j.compte_id,
-                  j.pseudo_ingame,
-                  j.pseudo_facebook,
-                  j.pseudo_discord,
-                  j.handcam,
-                  new Date(j.date_inscription).toLocaleDateString('fr-FR')
-                ]);
-              } else {
-                headers = [
-                  'Code', 'Équipe', 'Tag', 'Capitaine',
-                  'J1 ID', 'J1 Pseudo', 'J2 ID', 'J2 Pseudo',
-                  'J3 ID', 'J3 Pseudo', 'J4 ID', 'J4 Pseudo',
-                  'R1 ID', 'R1 Pseudo', 'R2 ID', 'R2 Pseudo',
-                  'Paiement', 'Réf', 'Date Paiement', 'Date Inscription'
-                ];
-                
-                csvData = teamsFiltrees.map((t: TeamWithDetails) => [
-                  t.registrationCode,
-                  t.teamName,
-                  t.teamTag || '',
-                  t.captainName,
-                  t.player1Id || '', t.player1Name || '',
-                  t.player2Id || '', t.player2Name || '',
-                  t.player3Id || '', t.player3Name || '',
-                  t.player4Id || '', t.player4Name || '',
-                  t.sub1Id || '', t.sub1Name || '',
-                  t.sub2Id || '', t.sub2Name || '',
-                  t.paymentMethod,
-                  t.paymentRef,
-                  new Date(t.paymentDate).toLocaleDateString('fr-FR'),
-                  new Date(t.createdAt).toLocaleDateString('fr-FR')
-                ]);
-              }
+    // Créer le workbook et la worksheet
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(excelData);
+    
+    // Ajuster la largeur des colonnes
+    const colWidths = [
+      { wch: 12 }, // Code
+      { wch: 20 }, // Équipe
+      { wch: 10 }, // Tag
+      { wch: 15 }, // Capitaine
+      { wch: 30 }, // Lien FB
+      { wch: 10 }, // J1 ID
+      { wch: 15 }, // J1 Pseudo
+      { wch: 10 }, // J2 ID
+      { wch: 15 }, // J2 Pseudo
+      { wch: 10 }, // J3 ID
+      { wch: 15 }, // J3 Pseudo
+      { wch: 10 }, // J4 ID
+      { wch: 15 }, // J4 Pseudo
+      { wch: 10 }, // R1 ID
+      { wch: 15 }, // R1 Pseudo
+      { wch: 10 }, // R2 ID
+      { wch: 15 }, // R2 Pseudo
+      { wch: 12 }, // Paiement
+      { wch: 15 }, // Référence
+      { wch: 15 }, // Date Paiement
+      { wch: 8 },  // Règles
+      { wch: 8 },  // Décision
+      { wch: 15 }, // Date Inscription
+    ];
+    ws['!cols'] = colWidths;
 
-              const csv = [headers, ...csvData].map(row => row.join(',')).join('\n');
-              const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-              const url = window.URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = `${type}_${new Date().toISOString().split('T')[0]}.csv`;
-              document.body.appendChild(a);
-              a.click();
-              document.body.removeChild(a);
-              window.URL.revokeObjectURL(url);
-            };
+    XLSX.utils.book_append_sheet(wb, ws, 'Inscriptions Tournament');
+    
+    // Télécharger le fichier
+    const fileName = `tournament_inscriptions_${new Date().toISOString().split('T')[0]}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+  };
 
-
-
-  const confirmDelete = (type: 'individuel' | 'equipe', id: number): void => {
-    setDeleteConfirm({ type, id });
+  const confirmDelete = (id: number): void => {
+    setDeleteConfirm({ id });
     setShowDeleteConfirm(true);
   };
 
   const handleDelete = async (): Promise<void> => {
     if (!deleteConfirm) return;
-
-    if (deleteConfirm.type === 'individuel') {
-      try {
-        const res = await fetch(`/api/joueuses/${deleteConfirm.id}`, { 
-          method: 'DELETE' 
-        });
-
-        if (res.ok) {
-          setShowDeleteConfirm(false);
-          setDeleteConfirm(null);
-          await fetchAllData();
-          alert('Suppression réussie !');
-        } else {
-          const errorData = await res.json();
-          alert(`Erreur: ${errorData.error || 'Erreur inconnue'}`);
-        }
-      } catch {
-        console.error('Erreur lors de la suppression');
-        alert('Erreur de connexion');
-      }
-    } else {
-      await handleDeleteTeam(deleteConfirm.id);
-      setShowDeleteConfirm(false);
-      setDeleteConfirm(null);
-    }
+    await handleDeleteTeam(deleteConfirm.id);
+    setShowDeleteConfirm(false);
+    setDeleteConfirm(null);
   };
 
-  const joueusesFiltrees: Joueuse[] = joueuses.filter((j: Joueuse) => {
-    const matchesSearch = 
-      j.compte_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      j.pseudo_ingame.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      j.pseudo_facebook.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      j.pseudo_discord.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesTournoi = j.tournoi_id === 1;
-
-    return matchesSearch && matchesTournoi;
-  });
-
   const teamsFiltrees: TeamWithDetails[] = teams.filter((t: TeamWithDetails) => {
-    const matchesSearch = 
-      t.teamName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    return t.teamName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       t.captainName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       t.registrationCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
       t.player1Name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       t.player2Name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       t.player3Name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       t.player4Name.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesTournoi = t.tournamentId === 2;
-
-    return matchesSearch && matchesTournoi;
   });
 
-  const totalPagesFemina: number = Math.ceil(joueusesFiltrees.length / itemsPerPage);
-  const startIndexFemina: number = (currentPageFemina - 1) * itemsPerPage;
-  const endIndexFemina: number = startIndexFemina + itemsPerPage;
-  const joueusesPaginees = joueusesFiltrees.slice(startIndexFemina, endIndexFemina);
-
-  const totalPagesTournament: number = Math.ceil(teamsFiltrees.length / itemsPerPage);
-  const startIndexTournament: number = (currentPageTournament - 1) * itemsPerPage;
-  const endIndexTournament: number = startIndexTournament + itemsPerPage;
-  const teamsPaginees = teamsFiltrees.slice(startIndexTournament, endIndexTournament);
+  const totalPages = Math.ceil(teamsFiltrees.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const teamsPaginees = teamsFiltrees.slice(startIndex, endIndex);
 
   const stats = {
-    totalIndividuelles: joueuses.length,
     totalEquipes: teams.length,
-    avecHandcam: joueuses.filter((j: Joueuse) => j.handcam === 'Oui').length,
-    tournoi1: joueuses.filter((j: Joueuse) => j.tournoi_id === 1).length,
-    tournoi2: teams.filter((t: TeamWithDetails) => t.tournamentId === 2).length,
   };
 
   if (loading) {
@@ -398,439 +290,190 @@ export default function AdminDashboard() {
         {/* Contenu principal */}
         <div className="flex-1 p-8">
           {activeTab === 'dashboard' && (
-            <>
-              {/* Stats Cards */}
-              <div className="grid md:grid-cols-4 gap-6 mb-8">
-                <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 bg-[#f8c741]/10 rounded-lg flex items-center justify-center">
-                      <Users className="w-5 h-5 text-[#f8c741]" />
-                    </div>
-                    <span className="text-3xl font-bold text-gray-800">{stats.totalIndividuelles + stats.totalEquipes}</span>
+            <div className="grid md:grid-cols-1 gap-6 mb-8">
+              <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-10 h-10 bg-[#f8c741]/10 rounded-lg flex items-center justify-center">
+                    <Users className="w-5 h-5 text-[#f8c741]" />
                   </div>
-                  <p className="text-gray-500 text-sm">Inscriptions totales</p>
+                  <span className="text-3xl font-bold text-gray-800">{stats.totalEquipes}</span>
                 </div>
-                
-                <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <Sparkles className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <span className="text-3xl font-bold text-gray-800">{stats.tournoi1}</span>
-                  </div>
-                  <p className="text-gray-500 text-sm">Femina Esport (8 Mars)</p>
-                </div>
-                
-                <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                      <Sword className="w-5 h-5 text-purple-600" />
-                    </div>
-                    <span className="text-3xl font-bold text-gray-800">{stats.tournoi2}</span>
-                  </div>
-                  <p className="text-gray-500 text-sm">The Tournament S4 (23 Mars)</p>
-                </div>
-                
-                <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                      <CheckCircle className="w-5 h-5 text-green-600" />
-                    </div>
-                    <span className="text-3xl font-bold text-gray-800">{stats.avecHandcam}</span>
-                  </div>
-                  <p className="text-gray-500 text-sm">Avec Handcam</p>
-                </div>
+                <p className="text-gray-500 text-sm">Équipes inscrites au Tournament</p>
               </div>
-            </>
+            </div>
           )}
 
           {activeTab === 'inscriptions' && (
             <>
-              {/* Barre de recherche commune */}
-              <div className="mb-6">
-                <div className="relative">
+              {/* Barre de recherche et export */}
+              <div className="flex flex-col md:flex-row gap-4 mb-6">
+                <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
                     type="text"
-                    placeholder="Rechercher dans les deux tournois..."
+                    placeholder="Rechercher une équipe, un capitaine, un joueur..."
                     className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 text-gray-700 placeholder-gray-400 focus:border-[#f8c741] focus:outline-none"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleExportExcel}
+                    className="flex items-center gap-2 px-4 py-3 rounded-lg font-medium bg-green-600 text-white hover:bg-green-700 transition-colors shadow-sm text-sm"
+                  >
+                    <FileSpreadsheet className="w-4 h-4" />
+                    Export Excel
+                  </button>
+                </div>
               </div>
 
-              {/* Mini-navbar pour les tournois */}
-              <div className="flex gap-2 mb-6 border-b border-gray-200">
-                <button
-                  onClick={() => setSelectedTournoi('femina')}
-                  className={`px-6 py-3 font-medium text-sm flex items-center gap-2 border-b-2 transition-colors ${
-                    selectedTournoi === 'femina' 
-                      ? 'border-[#f8c741] text-[#f8c741]' 
-                      : 'border-transparent text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  <Sparkles className="w-4 h-4" />
-                  Tournoi Femina Esport 
-                </button>
-                <button
-                  onClick={() => setSelectedTournoi('tournament')}
-                  className={`px-6 py-3 font-medium text-sm flex items-center gap-2 border-b-2 transition-colors ${
-                    selectedTournoi === 'tournament' 
-                      ? 'border-[#f8c741] text-[#f8c741]' 
-                      : 'border-transparent text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  <Sword className="w-4 h-4" />
-                  The Tournament S4 
-                </button>
+              {/* Tableau des inscriptions */}
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-lg font-semibold text-gray-800">
+                    Équipes inscrites • <span className="text-[#f8c741]">{teamsFiltrees.length}</span>
+                  </h2>
+                </div>
+
+                <div className="bg-white rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="bg-purple-50 border-b border-gray-200">
+                          <th className="text-left py-3 px-4 text-gray-600 font-medium">Code</th>
+                          <th className="text-left py-3 px-4 text-gray-600 font-medium">Équipe</th>
+                          <th className="text-left py-3 px-4 text-gray-600 font-medium">Tag</th>
+                          <th className="text-left py-3 px-4 text-gray-600 font-medium">Capitaine</th>
+                          <th className="text-left py-3 px-4 text-gray-600 font-medium">J1 ID</th>
+                          <th className="text-left py-3 px-4 text-gray-600 font-medium">J1 Pseudo</th>
+                          <th className="text-left py-3 px-4 text-gray-600 font-medium">J2 ID</th>
+                          <th className="text-left py-3 px-4 text-gray-600 font-medium">J2 Pseudo</th>
+                          <th className="text-left py-3 px-4 text-gray-600 font-medium">J3 ID</th>
+                          <th className="text-left py-3 px-4 text-gray-600 font-medium">J3 Pseudo</th>
+                          <th className="text-left py-3 px-4 text-gray-600 font-medium">J4 ID</th>
+                          <th className="text-left py-3 px-4 text-gray-600 font-medium">J4 Pseudo</th>
+                          <th className="text-left py-3 px-4 text-gray-600 font-medium">R1 ID</th>
+                          <th className="text-left py-3 px-4 text-gray-600 font-medium">R1 Pseudo</th>
+                          <th className="text-left py-3 px-4 text-gray-600 font-medium">R2 ID</th>
+                          <th className="text-left py-3 px-4 text-gray-600 font-medium">R2 Pseudo</th>
+                          <th className="text-left py-3 px-4 text-gray-600 font-medium">Paiement</th>
+                          <th className="text-left py-3 px-4 text-gray-600 font-medium">Réf</th>
+                          <th className="text-left py-3 px-4 text-gray-600 font-medium">Date Pmt</th>
+                          <th className="text-left py-3 px-4 text-gray-600 font-medium">Règles</th>
+                          <th className="text-left py-3 px-4 text-gray-600 font-medium">Décision</th>
+                          <th className="text-left py-3 px-4 text-gray-600 font-medium">Date Insc</th>
+                          <th className="text-left py-3 px-4 text-gray-600 font-medium">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {teamsPaginees.map((team) => (
+                          <tr 
+                            key={team.id}
+                            className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                          >
+                            <td className="py-3 px-4 font-mono text-xs text-gray-500">{team.registrationCode}</td>
+                            <td className="py-3 px-4 font-medium text-gray-800">{team.teamName}</td>
+                            <td className="py-3 px-4 text-sm text-gray-600">{team.teamTag || '—'}</td>
+                            <td className="py-3 px-4 text-sm text-gray-600">{team.captainName}</td>
+                            <td className="py-3 px-4 text-xs font-mono text-gray-500">{team.player1Id || '—'}</td>
+                            <td className="py-3 px-4 text-sm text-gray-600">{team.player1Name || '—'}</td>
+                            <td className="py-3 px-4 text-xs font-mono text-gray-500">{team.player2Id || '—'}</td>
+                            <td className="py-3 px-4 text-sm text-gray-600">{team.player2Name || '—'}</td>
+                            <td className="py-3 px-4 text-xs font-mono text-gray-500">{team.player3Id || '—'}</td>
+                            <td className="py-3 px-4 text-sm text-gray-600">{team.player3Name || '—'}</td>
+                            <td className="py-3 px-4 text-xs font-mono text-gray-500">{team.player4Id || '—'}</td>
+                            <td className="py-3 px-4 text-sm text-gray-600">{team.player4Name || '—'}</td>
+                            <td className="py-3 px-4 text-xs font-mono text-gray-500">{team.sub1Id || '—'}</td>
+                            <td className="py-3 px-4 text-sm text-gray-600">{team.sub1Name || '—'}</td>
+                            <td className="py-3 px-4 text-xs font-mono text-gray-500">{team.sub2Id || '—'}</td>
+                            <td className="py-3 px-4 text-sm text-gray-600">{team.sub2Name || '—'}</td>
+                            <td className="py-3 px-4">
+                              <span className="text-xs px-2 py-1 bg-purple-100 text-purple-600 rounded-full">
+                                {team.paymentMethod}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-sm font-mono text-gray-600">{team.paymentRef}</td>
+                            <td className="py-3 px-4 text-sm text-gray-600">
+                              {new Date(team.paymentDate).toLocaleDateString('fr-FR')}
+                            </td>
+                            <td className="py-3 px-4 text-center">
+                              {team.termsAccepted ? (
+                                <CheckCircle className="w-4 h-4 text-green-500 mx-auto" />
+                              ) : (
+                                <span className="text-gray-400">—</span>
+                              )}
+                            </td>
+                            <td className="py-3 px-4 text-center">
+                              {team.rulesAccepted ? (
+                                <CheckCircle className="w-4 h-4 text-green-500 mx-auto" />
+                              ) : (
+                                <span className="text-gray-400">—</span>
+                              )}
+                            </td>
+                            <td className="py-3 px-4 text-sm text-gray-600">
+                              {new Date(team.createdAt).toLocaleDateString('fr-FR')}
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => handleViewDetails(team)}
+                                  className="p-1 hover:text-[#f8c741] transition-colors"
+                                  title="Voir détails"
+                                >
+                                  <Eye className="w-4 h-4 text-gray-400 hover:text-[#f8c741]" />
+                                </button>
+                                <button
+                                  onClick={() => confirmDelete(team.id)}
+                                  className="p-1 hover:text-red-500 transition-colors"
+                                  title="Supprimer"
+                                >
+                                  <Trash2 className="w-4 h-4 text-gray-400 hover:text-red-500" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Pagination */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-between p-4 border-t border-gray-200 bg-gray-50">
+                      <p className="text-sm text-gray-600">
+                        Affichage {startIndex + 1} à {Math.min(endIndex, teamsFiltrees.length)} sur {teamsFiltrees.length}
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                          disabled={currentPage === 1}
+                          className="p-2 rounded-lg bg-white border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                        </button>
+                        <span className="px-4 py-2 rounded-lg bg-[#f8c741] text-white font-medium">
+                          {currentPage} / {totalPages}
+                        </span>
+                        <button
+                          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                          disabled={currentPage === totalPages}
+                          className="p-2 rounded-lg bg-white border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
-
-              {/* Tableau Tournoi Femina */}
-              {selectedTournoi === 'femina' && (
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <h2 className="text-lg font-semibold text-gray-800">
-                      Inscriptions individuelles • <span className="text-[#f8c741]">{joueusesFiltrees.length}</span>
-                    </h2>
-                    <button
-                      onClick={() => handleExportCSV('femina')}
-                      className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium bg-[#f8c741] text-white hover:bg-[#e5b53a] transition-colors shadow-sm text-sm"
-                    >
-                      <Download className="w-4 h-4" />
-                      Export CSV
-                    </button>
-                  </div>
-
-                  <div className="bg-white rounded-xl overflow-hidden border border-gray-200 shadow-sm">
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="bg-blue-50 border-b border-gray-200">
-                            <th className="text-left py-3 px-4 text-gray-600 font-medium">ID Compte</th>
-                            <th className="text-left py-3 px-4 text-gray-600 font-medium">Pseudo</th>
-                            <th className="text-left py-3 px-4 text-gray-600 font-medium">Facebook</th>
-                            <th className="text-left py-3 px-4 text-gray-600 font-medium">Discord</th>
-                            <th className="text-left py-3 px-4 text-gray-600 font-medium">Handcam</th>
-                            <th className="text-left py-3 px-4 text-gray-600 font-medium">Date</th>
-                            <th className="text-left py-3 px-4 text-gray-600 font-medium">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {joueusesPaginees.map((joueuse) => (
-                            <tr 
-                              key={joueuse.id}
-                              className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
-                            >
-                              <td className="py-3 px-4 font-mono text-sm text-gray-700">{joueuse.compte_id}</td>
-                              <td className="py-3 px-4 font-medium text-gray-800">{joueuse.pseudo_ingame}</td>
-                              <td className="py-3 px-4">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm text-gray-600">{joueuse.pseudo_facebook}</span>
-                                  <button
-                                    onClick={() => copyToClipboard(joueuse.pseudo_facebook)}
-                                    className="p-1 hover:text-[#f8c741]"
-                                  >
-                                    <Copy className="w-3 h-3 text-gray-400" />
-                                  </button>
-                                </div>
-                              </td>
-                              <td className="py-3 px-4 text-sm text-gray-600">{joueuse.pseudo_discord}</td>
-                              <td className="py-3 px-4">
-                                {joueuse.handcam === 'Oui' ? (
-                                  <CheckCircle className="w-5 h-5 text-green-500" />
-                                ) : (
-                                  <span className="text-gray-400">—</span>
-                                )}
-                              </td>
-                              <td className="py-3 px-4 text-sm text-gray-600">
-                                {new Date(joueuse.date_inscription).toLocaleDateString('fr-FR')}
-                              </td>
-                              <td className="py-3 px-4">
-                                <div className="flex gap-2">
-                                  <button
-                                    onClick={() => handleViewDetails('individuel', joueuse)}
-                                    className="p-1 hover:text-[#f8c741] transition-colors"
-                                    title="Voir détails"
-                                  >
-                                    <Eye className="w-4 h-4 text-gray-400 hover:text-[#f8c741]" />
-                                  </button>
-                                  <button
-                                    onClick={() => handleEdit(joueuse)}
-                                    className="p-1 hover:text-[#f8c741] transition-colors"
-                                    title="Modifier"
-                                  >
-                                    <Edit className="w-4 h-4 text-gray-400 hover:text-[#f8c741]" />
-                                  </button>
-                                  <button
-                                    onClick={() => confirmDelete('individuel', joueuse.id)}
-                                    className="p-1 hover:text-red-500 transition-colors"
-                                    title="Supprimer"
-                                  >
-                                    <Trash2 className="w-4 h-4 text-gray-400 hover:text-red-500" />
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    {/* Pagination Femina */}
-                    {totalPagesFemina > 1 && (
-                      <div className="flex items-center justify-between p-4 border-t border-gray-200 bg-gray-50">
-                        <p className="text-sm text-gray-600">
-                          Affichage {startIndexFemina + 1} à {Math.min(endIndexFemina, joueusesFiltrees.length)} sur {joueusesFiltrees.length}
-                        </p>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => setCurrentPageFemina(p => Math.max(1, p - 1))}
-                            disabled={currentPageFemina === 1}
-                            className="p-2 rounded-lg bg-white border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50"
-                          >
-                            <ChevronLeft className="w-4 h-4" />
-                          </button>
-                          <span className="px-4 py-2 rounded-lg bg-[#f8c741] text-white font-medium">
-                            {currentPageFemina} / {totalPagesFemina}
-                          </span>
-                          <button
-                            onClick={() => setCurrentPageFemina(p => Math.min(totalPagesFemina, p + 1))}
-                            disabled={currentPageFemina === totalPagesFemina}
-                            className="p-2 rounded-lg bg-white border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50"
-                          >
-                            <ChevronRight className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Tableau The Tournament avec toutes les informations */}
-              {selectedTournoi === 'tournament' && (
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <h2 className="text-lg font-semibold text-gray-800">
-                      Équipes inscrites • <span className="text-[#f8c741]">{teamsFiltrees.length}</span>
-                    </h2>
-                    <button
-                      onClick={() => handleExportCSV('tournament')}
-                      className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium bg-[#f8c741] text-white hover:bg-[#e5b53a] transition-colors shadow-sm text-sm"
-                    >
-                      <Download className="w-4 h-4" />
-                      Export CSV
-                    </button>
-                  </div>
-
-                  <div className="bg-white rounded-xl overflow-hidden border border-gray-200 shadow-sm">
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="bg-purple-50 border-b border-gray-200">
-                            <th className="text-left py-3 px-4 text-gray-600 font-medium">Code</th>
-                            <th className="text-left py-3 px-4 text-gray-600 font-medium">Équipe</th>
-                            <th className="text-left py-3 px-4 text-gray-600 font-medium">Tag</th>
-                            <th className="text-left py-3 px-4 text-gray-600 font-medium">Capitaine</th>
-                            <th className="text-left py-3 px-4 text-gray-600 font-medium">J1 ID</th>
-                            <th className="text-left py-3 px-4 text-gray-600 font-medium">J1 Pseudo</th>
-                            <th className="text-left py-3 px-4 text-gray-600 font-medium">J2 ID</th>
-                            <th className="text-left py-3 px-4 text-gray-600 font-medium">J2 Pseudo</th>
-                            <th className="text-left py-3 px-4 text-gray-600 font-medium">J3 ID</th>
-                            <th className="text-left py-3 px-4 text-gray-600 font-medium">J3 Pseudo</th>
-                            <th className="text-left py-3 px-4 text-gray-600 font-medium">J4 ID</th>
-                            <th className="text-left py-3 px-4 text-gray-600 font-medium">J4 Pseudo</th>
-                            <th className="text-left py-3 px-4 text-gray-600 font-medium">R1 ID</th>
-                            <th className="text-left py-3 px-4 text-gray-600 font-medium">R1 Pseudo</th>
-                            <th className="text-left py-3 px-4 text-gray-600 font-medium">R2 ID</th>
-                            <th className="text-left py-3 px-4 text-gray-600 font-medium">R2 Pseudo</th>
-                            <th className="text-left py-3 px-4 text-gray-600 font-medium">Paiement</th>
-                            <th className="text-left py-3 px-4 text-gray-600 font-medium">Réf</th>
-                            <th className="text-left py-3 px-4 text-gray-600 font-medium">Date Pmt</th>
-                            <th className="text-left py-3 px-4 text-gray-600 font-medium">Règles</th>
-                            <th className="text-left py-3 px-4 text-gray-600 font-medium">Décision</th>
-                            <th className="text-left py-3 px-4 text-gray-600 font-medium">Date Insc</th>
-                            <th className="text-left py-3 px-4 text-gray-600 font-medium">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {teamsPaginees.map((team) => (
-                            <tr 
-                              key={team.id}
-                              className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
-                            >
-                              <td className="py-3 px-4 font-mono text-xs text-gray-500">{team.registrationCode}</td>
-                              <td className="py-3 px-4 font-medium text-gray-800">{team.teamName}</td>
-                              <td className="py-3 px-4 text-sm text-gray-600">{team.teamTag || '—'}</td>
-                              <td className="py-3 px-4 text-sm text-gray-600">{team.captainName}</td>
-                              <td className="py-3 px-4 text-xs font-mono text-gray-500">{team.player1Id || '—'}</td>
-                              <td className="py-3 px-4 text-sm text-gray-600">{team.player1Name || '—'}</td>
-                              <td className="py-3 px-4 text-xs font-mono text-gray-500">{team.player2Id || '—'}</td>
-                              <td className="py-3 px-4 text-sm text-gray-600">{team.player2Name || '—'}</td>
-                              <td className="py-3 px-4 text-xs font-mono text-gray-500">{team.player3Id || '—'}</td>
-                              <td className="py-3 px-4 text-sm text-gray-600">{team.player3Name || '—'}</td>
-                              <td className="py-3 px-4 text-xs font-mono text-gray-500">{team.player4Id || '—'}</td>
-                              <td className="py-3 px-4 text-sm text-gray-600">{team.player4Name || '—'}</td>
-                              <td className="py-3 px-4 text-xs font-mono text-gray-500">{team.sub1Id || '—'}</td>
-                              <td className="py-3 px-4 text-sm text-gray-600">{team.sub1Name || '—'}</td>
-                              <td className="py-3 px-4 text-xs font-mono text-gray-500">{team.sub2Id || '—'}</td>
-                              <td className="py-3 px-4 text-sm text-gray-600">{team.sub2Name || '—'}</td>
-                              <td className="py-3 px-4">
-                                <span className="text-xs px-2 py-1 bg-purple-100 text-purple-600 rounded-full">
-                                  {team.paymentMethod}
-                                </span>
-                              </td>
-                              <td className="py-3 px-4 text-sm font-mono text-gray-600">{team.paymentRef}</td>
-                              <td className="py-3 px-4 text-sm text-gray-600">
-                                {new Date(team.paymentDate).toLocaleDateString('fr-FR')}
-                              </td>
-                              <td className="py-3 px-4 text-center">
-                                {team.termsAccepted ? (
-                                  <CheckCircle className="w-4 h-4 text-green-500 mx-auto" />
-                                ) : (
-                                  <span className="text-gray-400">—</span>
-                                )}
-                              </td>
-                              <td className="py-3 px-4 text-center">
-                                {team.rulesAccepted ? (
-                                  <CheckCircle className="w-4 h-4 text-green-500 mx-auto" />
-                                ) : (
-                                  <span className="text-gray-400">—</span>
-                                )}
-                              </td>
-                              <td className="py-3 px-4 text-sm text-gray-600">
-                                {new Date(team.createdAt).toLocaleDateString('fr-FR')}
-                              </td>
-                              <td className="py-3 px-4">
-                                <div className="flex gap-2">
-                                  <button
-                                    onClick={() => handleViewDetails('equipe', team)}
-                                    className="p-1 hover:text-[#f8c741] transition-colors"
-                                    title="Voir détails"
-                                  >
-                                    <Eye className="w-4 h-4 text-gray-400 hover:text-[#f8c741]" />
-                                  </button>
-                                  <button
-                                    onClick={() => confirmDelete('equipe', team.id)}
-                                    className="p-1 hover:text-red-500 transition-colors"
-                                    title="Supprimer"
-                                  >
-                                    <Trash2 className="w-4 h-4 text-gray-400 hover:text-red-500" />
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    {/* Pagination Tournament */}
-                    {totalPagesTournament > 1 && (
-                      <div className="flex items-center justify-between p-4 border-t border-gray-200 bg-gray-50">
-                        <p className="text-sm text-gray-600">
-                          Affichage {startIndexTournament + 1} à {Math.min(endIndexTournament, teamsFiltrees.length)} sur {teamsFiltrees.length}
-                        </p>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => setCurrentPageTournament(p => Math.max(1, p - 1))}
-                            disabled={currentPageTournament === 1}
-                            className="p-2 rounded-lg bg-white border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50"
-                          >
-                            <ChevronLeft className="w-4 h-4" />
-                          </button>
-                          <span className="px-4 py-2 rounded-lg bg-[#f8c741] text-white font-medium">
-                            {currentPageTournament} / {totalPagesTournament}
-                          </span>
-                          <button
-                            onClick={() => setCurrentPageTournament(p => Math.min(totalPagesTournament, p + 1))}
-                            disabled={currentPageTournament === totalPagesTournament}
-                            className="p-2 rounded-lg bg-white border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50"
-                          >
-                            <ChevronRight className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
             </>
           )}
         </div>
       </div>
 
-      {/* Modals de détail pour Femina */}
-      {showDetailCard && detailType === 'individuel' && selectedJoueuse && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className="max-w-md w-full bg-white rounded-2xl shadow-xl border-2 border-[#f8c741]">
-            <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-              <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
-                <User className="w-5 h-5 text-[#f8c741]" />
-                Détails inscription
-              </h2>
-              <button
-                onClick={() => setShowDetailCard(false)}
-                className="p-2 rounded-lg hover:bg-gray-100"
-              >
-                <X className="w-5 h-5 text-gray-600" />
-              </button>
-            </div>
-            
-            <div className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2 p-3 bg-gray-50 rounded-lg">
-                  <p className="text-xs text-gray-500">ID Compte</p>
-                  <p className="font-mono font-medium text-gray-800">{selectedJoueuse.compte_id}</p>
-                </div>
-                <div className="col-span-2 p-3 bg-gray-50 rounded-lg">
-                  <p className="text-xs text-gray-500">Pseudo In Game</p>
-                  <p className="font-medium text-gray-800">{selectedJoueuse.pseudo_ingame}</p>
-                </div>
-                <div className="col-span-2 p-3 bg-gray-50 rounded-lg">
-                  <p className="text-xs text-gray-500">Facebook</p>
-                  <div className="flex items-center justify-between">
-                    <p className="font-medium text-gray-800">{selectedJoueuse.pseudo_facebook}</p>
-                    <button
-                      onClick={() => copyToClipboard(selectedJoueuse.pseudo_facebook)}
-                      className="p-1 hover:text-[#f8c741]"
-                    >
-                      <Copy className="w-4 h-4 text-gray-400" />
-                    </button>
-                  </div>
-                </div>
-                <div className="col-span-2 p-3 bg-gray-50 rounded-lg">
-                  <p className="text-xs text-gray-500">Discord</p>
-                  <p className="font-medium text-gray-800">{selectedJoueuse.pseudo_discord}</p>
-                </div>
-                <div className="col-span-2 p-3 bg-gray-50 rounded-lg">
-                  <p className="text-xs text-gray-500">Handcam</p>
-                  <p className="font-medium text-gray-800">{selectedJoueuse.handcam}</p>
-                </div>
-                <div className="col-span-2 p-3 bg-gray-50 rounded-lg">
-                  <p className="text-xs text-gray-500">Date d&apos;inscription</p>
-                  <p className="font-medium text-gray-800">
-                    {new Date(selectedJoueuse.date_inscription).toLocaleString('fr-FR')}
-                  </p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="p-6 border-t border-gray-200 flex justify-end">
-              <button
-                onClick={() => setShowDetailCard(false)}
-                className="px-6 py-2 rounded-lg font-medium bg-[#f8c741] text-white hover:bg-[#e5b53a]"
-              >
-                Fermer
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modals de détail pour Tournament */}
-      {showDetailCard && detailType === 'equipe' && selectedTeam && (
+      {/* Modal de détail pour Tournament */}
+      {showDetailCard && selectedTeam && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
           <div className="max-w-2xl w-full bg-white rounded-2xl shadow-xl border-2 border-[#f8c741] max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white">
@@ -1022,82 +665,6 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Modal de modification */}
-      {showEditModal && editingJoueuse && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className="max-w-md w-full bg-white rounded-2xl shadow-xl border-2 border-[#f8c741]">
-            <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-              <h2 className="text-xl font-semibold text-gray-800">Modifier l&apos;inscription</h2>
-              <button
-                onClick={() => setShowEditModal(false)}
-                className="p-2 rounded-lg hover:bg-gray-100"
-              >
-                <X className="w-5 h-5 text-gray-600" />
-              </button>
-            </div>
-            <form onSubmit={(e) => { e.preventDefault(); handleSaveEdit(); }} className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Pseudo In Game</label>
-                <input
-                  type="text"
-                  value={editFormData.pseudo_ingame}
-                  onChange={(e) => setEditFormData({...editFormData, pseudo_ingame: e.target.value})}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 text-gray-700 focus:border-[#f8c741] focus:outline-none"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Facebook</label>
-                <input
-                  type="text"
-                  value={editFormData.pseudo_facebook}
-                  onChange={(e) => setEditFormData({...editFormData, pseudo_facebook: e.target.value})}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 text-gray-700 focus:border-[#f8c741] focus:outline-none"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Discord</label>
-                <input
-                  type="text"
-                  value={editFormData.pseudo_discord}
-                  onChange={(e) => setEditFormData({...editFormData, pseudo_discord: e.target.value})}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 text-gray-700 focus:border-[#f8c741] focus:outline-none"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Handcam</label>
-                <select
-                  value={editFormData.handcam}
-                  onChange={(e) => setEditFormData({...editFormData, handcam: e.target.value})}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 text-gray-700 focus:border-[#f8c741] focus:outline-none"
-                >
-                  <option value="Oui">Oui</option>
-                  <option value="Non">Non</option>
-                </select>
-              </div>
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="submit"
-                  className="flex-1 py-2 rounded-lg font-medium bg-[#f8c741] text-white hover:bg-[#e5b53a] transition-colors flex items-center justify-center gap-2"
-                >
-                  <Save className="w-4 h-4" />
-                  Enregistrer
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowEditModal(false)}
-                  className="flex-1 py-2 rounded-lg font-medium bg-white text-gray-700 border-2 border-gray-300 hover:bg-gray-50"
-                >
-                  Annuler
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
       {/* Confirmation de suppression */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
@@ -1108,9 +675,7 @@ export default function AdminDashboard() {
               </div>
               <h2 className="text-xl font-semibold text-gray-800 mb-2">Confirmer la suppression</h2>
               <p className="text-gray-600 mb-6">
-                {deleteConfirm?.type === 'individuel' 
-                  ? 'Cette inscription individuelle sera supprimée.'
-                  : 'Cette équipe et tous ses joueurs seront supprimés.'}
+                Cette équipe et tous ses joueurs seront supprimés.
               </p>
               <div className="flex gap-3">
                 <button
