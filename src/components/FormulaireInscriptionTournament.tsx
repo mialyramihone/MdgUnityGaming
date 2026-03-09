@@ -173,7 +173,8 @@ const handleSubmit = async (): Promise<void> => {
     });
     
     const text = await response.text();
-    console.log('📤 Réponse brute:', text);
+    console.log('📦 RÉPONSE BRUTE:', text);
+    console.log('📦 STATUS:', response.status);
     
     try {
       const data = JSON.parse(text);
