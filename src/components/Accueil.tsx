@@ -18,17 +18,17 @@ interface Tournoi {
 
 export default function Accueil() {
   const [tournoisEnVedette] = useState<Tournoi[]>([
-    {
-      id: 1,
-      titre: 'Tournoi Femina Esport',
-      jeu: 'Free Fire',
-      format: '4 vs 4',
-      heure: '20:00',
-      mode: 'Clash Squad',
-      places: 16,
-      date: '2026-03-08',
-      status: 'ouvert'
-    },
+    // {
+    //   id: 1,
+    //   titre: 'Tournoi Femina Esport',
+    //   jeu: 'Free Fire',
+    //   format: '4 vs 4',
+    //   heure: '20:00',
+    //   mode: 'Clash Squad',
+    //   places: 16,
+    //   date: '2026-03-08',
+    //   status: 'ouvert'
+    // },
     {
       id: 2,
       titre: 'The Tournament saison 4',
@@ -121,7 +121,7 @@ export default function Accueil() {
             <div className="w-16 h-16 bg-[#f8c741]/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <Calendar className="w-8 h-8 text-[#f8c741]" />
             </div>
-            <div className="text-2xl font-bold text-[#363225]-800 mb-2">08 Mars 2026</div>
+            <div className="text-2xl font-bold text-[#363225]-800 mb-2">23 Mars 2026</div>
             <div className="text-[#363225]-600">Prochain tournoi</div>
           </div>
         </div>
