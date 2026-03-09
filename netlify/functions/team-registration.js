@@ -14,14 +14,6 @@ exports.handler = async (event) => {
     return { statusCode: 200, headers, body: '' };
   }
 
-  if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      headers,
-      body: JSON.stringify({ error: 'Méthode non autorisée' })
-    };
-  }
-
   return new Promise((resolve) => {
     const fields = {};
     const files = [];
@@ -56,32 +48,36 @@ exports.handler = async (event) => {
       try {
         const sql = neon(process.env.DATABASE_URL);
         
-        // Générer un code d'inscription unique
         const registrationCode = 'TT4-' + Math.random().toString(36).substring(2, 10).toUpperCase();
         
-        // INSERTION dans la base de données
+        // INSÉRER TOUT D'UN COUP
         const result = await sql`
           INSERT INTO teams (
             team_name, team_tag, captain_name, captain_link,
+            registration_code, payment_method, payment_ref, payment_date,
+            tournament_id, terms_accepted, rules_accepted,
             player1_id, player1_name, player2_id, player2_name,
             player3_id, player3_name, player4_id, player4_name,
             sub1_id, sub1_name, sub2_id, sub2_name,
-            payment_date, payment_ref, payment_method,
-            terms_accepted, rules_accepted, tournament_id,
-            registration_code, created_at
+            created_at
           ) VALUES (
             ${fields.teamName}, ${fields.teamTag || ''}, ${fields.captainName}, ${fields.captainLink || ''},
-            ${fields.player1Id || ''}, ${fields.player1Name || ''}, ${fields.player2Id || ''}, ${fields.player2Name || ''},
-            ${fields.player3Id || ''}, ${fields.player3Name || ''}, ${fields.player4Id || ''}, ${fields.player4Name || ''},
-            ${fields.sub1Id || ''}, ${fields.sub1Name || ''}, ${fields.sub2Id || ''}, ${fields.sub2Name || ''},
-            ${fields.paymentDate}, ${fields.paymentRef}, ${fields.paymentMethod},
-            ${fields.termsAccepted === 'true'}, ${fields.rulesAccepted === 'true'}, ${parseInt(fields.tournamentId)},
-            ${registrationCode}, ${new Date()}
+            ${registrationCode},
+            ${fields.paymentMethod}, ${fields.paymentRef}, ${new Date(fields.paymentDate)},
+            ${parseInt(fields.tournamentId)},
+            ${fields.termsAccepted === 'true'}, ${fields.rulesAccepted === 'true'},
+            ${fields.player1Id || null}, ${fields.player1Name || null},
+            ${fields.player2Id || null}, ${fields.player2Name || null},
+            ${fields.player3Id || null}, ${fields.player3Name || null},
+            ${fields.player4Id || null}, ${fields.player4Name || null},
+            ${fields.sub1Id || null}, ${fields.sub1Name || null},
+            ${fields.sub2Id || null}, ${fields.sub2Name || null},
+            ${new Date()}
           )
           RETURNING id
         `;
         
-        console.log('✅ Insertion réussie, ID:', result[0].id);
+        console.log('✅ Équipe insérée, ID:', result[0].id);
         
         resolve({
           statusCode: 200,

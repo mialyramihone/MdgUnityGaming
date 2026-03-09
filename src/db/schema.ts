@@ -44,6 +44,19 @@ export const teams = pgTable('teams', {
   rulesAccepted: boolean('rules_accepted').default(true),
   status: varchar('status', { length: 20 }).default('confirmed'),
   createdAt: timestamp('created_at').defaultNow(),
+  
+  player1Id: varchar('player1_id', { length: 50 }),
+  player1Name: varchar('player1_name', { length: 100 }),
+  player2Id: varchar('player2_id', { length: 50 }),
+  player2Name: varchar('player2_name', { length: 100 }),
+  player3Id: varchar('player3_id', { length: 50 }),
+  player3Name: varchar('player3_name', { length: 100 }),
+  player4Id: varchar('player4_id', { length: 50 }),
+  player4Name: varchar('player4_name', { length: 100 }),
+  sub1Id: varchar('sub1_id', { length: 50 }),
+  sub1Name: varchar('sub1_name', { length: 100 }),
+  sub2Id: varchar('sub2_id', { length: 50 }),
+  sub2Name: varchar('sub2_name', { length: 100 }),
 });
 
 
