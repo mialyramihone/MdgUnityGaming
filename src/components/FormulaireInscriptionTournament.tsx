@@ -166,16 +166,16 @@ const handleSubmit = async (): Promise<void> => {
     });
     payload.append('tournamentId', String(tournoiId));
     
-    const response = await fetch('/.netlify/functions/team-registration', {
+    const response = await fetch('/api/team-registration', {
       method: 'POST',
       body: payload
     });
     
-    // 🔴 VOIR CE QUE RETOURNE LA FONCTION
+    
     const text = await response.text();
     console.log('📤 Réponse brute:', text);
     
-    // Essayer de parser en JSON
+    
     try {
       const data = JSON.parse(text);
       console.log('📤 Données parsées:', data);
