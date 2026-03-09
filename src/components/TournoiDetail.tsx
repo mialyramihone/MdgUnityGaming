@@ -33,45 +33,45 @@ export default function TournoiDetail({
   const [loading, setLoading] = useState(false);
 
     
-    useEffect(() => {
-    const fetchInscriptionsCount = async () => {
+   useEffect(() => {
+      const fetchInscriptionsCount = async () => {
         if (tournoi.id === 2) {
-        setLoading(true);
-            try {
+          setLoading(true);
+          try {
             
-            const res = await fetch(`/api/count-teams?id=${tournoi.id}`);
+            const res = await fetch(`/api/count-teams?tournamentId=${tournoi.id}`);
             const data = await res.json();
-                console.log("📊 Données reçues:", data); 
-                
+            console.log("📊 Données reçues:", data); 
+            
             if (data.count !== undefined) {
-            setInscriptionsCount(data.count);
+              setInscriptionsCount(data.count);
             }
-        } catch (error) {
+          } catch (error) {
             console.error('Erreur chargement inscriptions:', error);
-        } finally {
+          } finally {
             setLoading(false);
+          }
         }
-        }
-    };
+      };
 
-    fetchInscriptionsCount();
+      fetchInscriptionsCount();
     }, [tournoi.id]);
-
-    
-    const handleInscriptionSuccess = () => {
-    setShowInscriptionModal(false);
-    onInscrire();
-        if (tournoi.id === 2) {
         
-        fetch(`/api/count-teams?id=${tournoi.id}`)
-        .then(res => res.json())
-        .then(data => {
+    const handleInscriptionSuccess = () => {
+      setShowInscriptionModal(false);
+      onInscrire();
+      
+      if (tournoi.id === 2) {
+        
+        fetch(`/api/count-teams?tournamentId=${tournoi.id}`)
+          .then(res => res.json())
+          .then(data => {
             console.log("📊 Rechargement:", data);
             if (data.count !== undefined) {
-            setInscriptionsCount(data.count);
+              setInscriptionsCount(data.count);
             }
-        });
-    }
+          });
+      }
     };
 
   const placesRestantes = tournoi.places - inscriptionsCount;
