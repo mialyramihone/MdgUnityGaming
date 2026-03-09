@@ -177,71 +177,61 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleExportCSV = (type: 'femina' | 'tournament'): void => {
-    let headers: string[] = [];
-    let csvData: string[][] = [];
+            const handleExportCSV = (type: 'femina' | 'tournament'): void => {
+              
+              let headers: string[] = [];
+              let csvData: string[][] = [];
 
-    if (type === 'femina') {
-      headers = ['ID Compte', 'Pseudo', 'Facebook', 'Discord', 'Handcam', 'Date'];
-      csvData = joueusesFiltrees.map((j: Joueuse) => [
-        j.compte_id,
-        j.pseudo_ingame,
-        j.pseudo_facebook,
-        j.pseudo_discord,
-        j.handcam,
-        new Date(j.date_inscription).toLocaleDateString('fr-FR')
-      ]);
-    } else {
-      headers = [
-        'Code', 'Équipe', 'Tag', 'Capitaine', 'Lien FB',
-        'Joueur 1 ID', 'Joueur 1 Pseudo',
-        'Joueur 2 ID', 'Joueur 2 Pseudo',
-        'Joueur 3 ID', 'Joueur 3 Pseudo',
-        'Joueur 4 ID', 'Joueur 4 Pseudo',
-        'Remplaçant 1 ID', 'Remplaçant 1 Pseudo',
-        'Remplaçant 2 ID', 'Remplaçant 2 Pseudo',
-        'Paiement', 'Référence', 'Date Paiement',
-        'Règles acceptées', 'Décision acceptée', 'Date Inscription'
-      ];
-      
-      csvData = teamsFiltrees.map((t: TeamWithDetails) => [
-        t.registrationCode,
-        t.teamName,
-        t.teamTag || '',
-        t.captainName,
-        t.captainLink,
-        t.player1Id || '',
-        t.player1Name || '',
-        t.player2Id || '',
-        t.player2Name || '',
-        t.player3Id || '',
-        t.player3Name || '',
-        t.player4Id || '',
-        t.player4Name || '',
-        t.sub1Id || '',
-        t.sub1Name || '',
-        t.sub2Id || '',
-        t.sub2Name || '',
-        t.paymentMethod,
-        t.paymentRef,
-        new Date(t.paymentDate).toLocaleDateString('fr-FR'),
-        t.termsAccepted ? 'Oui' : 'Non',
-        t.rulesAccepted ? 'Oui' : 'Non',
-        new Date(t.createdAt).toLocaleDateString('fr-FR')
-      ]);
-    }
+              if (type === 'femina') {
+                headers = ['ID Compte', 'Pseudo', 'Facebook', 'Discord', 'Handcam', 'Date'];
+                csvData = joueusesFiltrees.map((j: Joueuse) => [
+                  j.compte_id,
+                  j.pseudo_ingame,
+                  j.pseudo_facebook,
+                  j.pseudo_discord,
+                  j.handcam,
+                  new Date(j.date_inscription).toLocaleDateString('fr-FR')
+                ]);
+              } else {
+                headers = [
+                  'Code', 'Équipe', 'Tag', 'Capitaine',
+                  'J1 ID', 'J1 Pseudo', 'J2 ID', 'J2 Pseudo',
+                  'J3 ID', 'J3 Pseudo', 'J4 ID', 'J4 Pseudo',
+                  'R1 ID', 'R1 Pseudo', 'R2 ID', 'R2 Pseudo',
+                  'Paiement', 'Réf', 'Date Paiement', 'Date Inscription'
+                ];
+                
+                csvData = teamsFiltrees.map((t: TeamWithDetails) => [
+                  t.registrationCode,
+                  t.teamName,
+                  t.teamTag || '',
+                  t.captainName,
+                  t.player1Id || '', t.player1Name || '',
+                  t.player2Id || '', t.player2Name || '',
+                  t.player3Id || '', t.player3Name || '',
+                  t.player4Id || '', t.player4Name || '',
+                  t.sub1Id || '', t.sub1Name || '',
+                  t.sub2Id || '', t.sub2Name || '',
+                  t.paymentMethod,
+                  t.paymentRef,
+                  new Date(t.paymentDate).toLocaleDateString('fr-FR'),
+                  new Date(t.createdAt).toLocaleDateString('fr-FR')
+                ]);
+              }
 
-    const csv = [headers, ...csvData].map(row => row.join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${type}_${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
-  };
+              const csv = [headers, ...csvData].map(row => row.join(',')).join('\n');
+              const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+              const url = window.URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `${type}_${new Date().toISOString().split('T')[0]}.csv`;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              window.URL.revokeObjectURL(url);
+            };
+
+
 
   const confirmDelete = (type: 'individuel' | 'equipe', id: number): void => {
     setDeleteConfirm({ type, id });
