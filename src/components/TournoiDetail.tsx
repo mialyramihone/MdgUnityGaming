@@ -5,6 +5,7 @@ import { ChevronRight, Clock, Gamepad2, Target, Info, FileText, Smartphone, Cale
 import { Tournoi } from '@/types/tournoi';
 import FormulaireInscriptionFemina from './FormulaireInscriptionFemina';
 import FormulaireInscriptionTournament from './FormulaireInscriptionTournament';
+import Image from 'next/image';
 
 interface TournoiDetailProps {
   tournoi: Tournoi;
@@ -32,47 +33,44 @@ export default function TournoiDetail({
   const [inscriptionsCount, setInscriptionsCount] = useState(initialInscriptionsCount);
   const [loading, setLoading] = useState(false);
 
-    
-   useEffect(() => {
-      const fetchInscriptionsCount = async () => {
-        if (tournoi.id === 2) {
-          setLoading(true);
-          try {
-            
-            const res = await fetch(`/api/count-teams?tournamentId=${tournoi.id}`);
-            const data = await res.json();
-            console.log("📊 Données reçues:", data); 
-            
-            if (data.count !== undefined) {
-              setInscriptionsCount(data.count);
-            }
-          } catch (error) {
-            console.error('Erreur chargement inscriptions:', error);
-          } finally {
-            setLoading(false);
-          }
-        }
-      };
-
-      fetchInscriptionsCount();
-    }, [tournoi.id]);
-        
-    const handleInscriptionSuccess = () => {
-      setShowInscriptionModal(false);
-      onInscrire();
-      
+  useEffect(() => {
+    const fetchInscriptionsCount = async () => {
       if (tournoi.id === 2) {
-        
-        fetch(`/api/count-teams?tournamentId=${tournoi.id}`)
-          .then(res => res.json())
-          .then(data => {
-            console.log("📊 Rechargement:", data);
-            if (data.count !== undefined) {
-              setInscriptionsCount(data.count);
-            }
-          });
+        setLoading(true);
+        try {
+          const res = await fetch(`/api/count-teams?tournamentId=${tournoi.id}`);
+          const data = await res.json();
+          console.log("📊 Données reçues:", data); 
+          
+          if (data.count !== undefined) {
+            setInscriptionsCount(data.count);
+          }
+        } catch (error) {
+          console.error('Erreur chargement inscriptions:', error);
+        } finally {
+          setLoading(false);
+        }
       }
     };
+
+    fetchInscriptionsCount();
+  }, [tournoi.id]);
+      
+  const handleInscriptionSuccess = () => {
+    setShowInscriptionModal(false);
+    onInscrire();
+    
+    if (tournoi.id === 2) {
+      fetch(`/api/count-teams?tournamentId=${tournoi.id}`)
+        .then(res => res.json())
+        .then(data => {
+          console.log("📊 Rechargement:", data);
+          if (data.count !== undefined) {
+            setInscriptionsCount(data.count);
+          }
+        });
+    }
+  };
 
   const placesRestantes = tournoi.places - inscriptionsCount;
 
@@ -99,12 +97,12 @@ export default function TournoiDetail({
     if (tournoi.id === 1) {
       return {
         periode: "Inscriptions jusqu'au 7 Mars 2026 à 22h00",
-        limite: "Fermeture des inscriptions : 7 Mars 22h"
+        limite: "Fermeture : 7 Mars 22h"
       };
     } else {
       return {
-        periode: "Inscriptions du 9 Mars au 20 Mars 2026",
-        limite: "Dernier jour : 20 Mars à minuit"
+        periode: "Inscriptions du 9 au 20 Mars 2026",
+        limite: "Dernier jour : 20 Mars"
       };
     }
   };
@@ -118,13 +116,13 @@ export default function TournoiDetail({
       };
     } else if (inscriptionStatus === 'fermee') {
       return {
-        text: 'Inscriptions fermées',
+        text: 'Fermé',
         disabled: true,
         className: 'bg-gray-400 text-white cursor-not-allowed'
       };
     } else {
       return {
-        text: "S'inscrire maintenant",
+        text: "S'inscrire",
         disabled: false,
         className: 'hover:scale-105 hover:shadow-lg'
       };
@@ -137,42 +135,57 @@ export default function TournoiDetail({
   const sections: Section[] = [
     { id: 'infos', label: 'Infos', icon: Info },
     { id: 'reglement', label: 'Règlement', icon: FileText },
-    ];
-    
-    
+  ];
 
   return (
     <>
-      <div className="min-h-screen" style={{ backgroundColor: '#ffffff' }}>
-        {/* Hero section */}
-        <div className="relative h-80 overflow-hidden" style={{ backgroundColor: tournoi.couleur }}>
-          <div className="absolute inset-0 bg-black opacity-50"></div>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Gamepad2 className="w-40 h-40 text-white opacity-20" />
-          </div>
+      <div className="min-h-screen bg-white">
+        
+        <div className="relative h-48 xs:h-56 sm:h-64 md:h-72 lg:h-80 overflow-hidden">
           
+          {tournoi.id === 2 ? (
+            <div className="absolute inset-0">
+              <Image
+                src="/images/freefire-bg.jpg" 
+                alt="Free Fire Background"
+                fill
+                className="object-cover"
+                priority
+                sizes="100vw"
+              />
+              <div className="absolute inset-0 bg-black/50"></div>
+            </div>
+          ) : (
+            <div className="absolute inset-0" style={{ backgroundColor: tournoi.couleur }}>
+              <div className="absolute inset-0 bg-black opacity-50"></div>
+            </div>
+          )}
           
           <button
             onClick={onBack}
-            className="absolute top-6 left-6 flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-lg text-white hover:bg-white/30 transition-all z-10"
+            className="absolute top-3 left-3 xs:top-4 xs:left-4 sm:top-6 sm:left-6 flex items-center gap-1 xs:gap-2 px-2 xs:px-3 sm:px-4 py-1 xs:py-1.5 sm:py-2 bg-white/20 backdrop-blur-sm rounded-lg text-white hover:bg-white/30 transition-all z-10 text-xs xs:text-sm"
           >
-            <ChevronRight className="w-5 h-5 rotate-180" />
-            Retour
+            <ChevronRight className="w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5 rotate-180" />
+            <span className="hidden xs:inline">Retour</span>
           </button>
 
-          {/* Titre et date */}
-          <div className="absolute bottom-0 left-0 right-0 p-8 text-white">
+
+          <div className="absolute bottom-0 left-0 right-0 p-3 xs:p-4 sm:p-6 md:p-8 text-white">
             <div className="container mx-auto">
-              <div className="flex justify-between items-end">
+              <div className="flex flex-wrap justify-between items-end gap-2">
                 <div>
-                  <span className="text-sm uppercase tracking-wider opacity-80">{tournoi.jeu}</span>
-                  <h1 className="text-3xl font-bold mt-2">{tournoi.titre}</h1>
+                  <span className="text-[10px] xs:text-xs sm:text-sm uppercase tracking-wider opacity-80">
+                    {tournoi.jeu}
+                  </span>
+                  <h1 className="text-base xs:text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold mt-0.5 xs:mt-1 sm:mt-2">
+                    {tournoi.titre}
+                  </h1>
                 </div>
                 <div className="text-right">
-                  <div className="text-4xl font-bold">
+                  <div className="text-xl xs:text-2xl sm:text-3xl md:text-4xl font-bold">
                     {new Date(tournoi.date).getDate()}
                   </div>
-                  <div className="text-xl">
+                  <div className="text-[10px] xs:text-xs sm:text-sm md:text-base lg:text-xl">
                     {new Date(tournoi.date).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
                   </div>
                 </div>
@@ -181,91 +194,108 @@ export default function TournoiDetail({
           </div>
         </div>
 
-        {/* Navigation sections */}
+
         <div className="border-b border-gray-200 sticky top-0 bg-white z-10">
-          <div className="container mx-auto px-4">
-            <div className="flex gap-8">
-              {sections.map((section) => {
-                const Icon = section.icon;
-                return (
-                  <button
-                    key={section.id}
-                    onClick={() => setActiveSection(section.id)}
-                    className={`py-4 px-2 font-medium border-b-2 transition-colors flex items-center gap-2 ${
-                      activeSection === section.id ? 'border-[#f8c741]' : 'border-transparent'
-                    }`}
-                    style={{ color: activeSection === section.id ? '#292929' : '#826d4a' }}
-                  >
-                    <Icon size={18} />
-                    {section.label}
-                  </button>
-                );
-              })}
+          <div className="container mx-auto px-2 xs:px-3 sm:px-4">
+            <div className="flex items-center justify-between">
+              
+              <div className="flex gap-2 xs:gap-4 sm:gap-6 md:gap-8 overflow-x-auto hide-scrollbar">
+                {sections.map((section) => {
+                  const Icon = section.icon;
+                  return (
+                    <button
+                      key={section.id}
+                      onClick={() => setActiveSection(section.id)}
+                      className={`py-2 xs:py-3 sm:py-4 px-1 xs:px-2 font-medium border-b-2 transition-colors flex items-center gap-1 xs:gap-2 text-xs xs:text-sm sm:text-base whitespace-nowrap ${
+                        activeSection === section.id ? 'border-[#f8c741]' : 'border-transparent'
+                      }`}
+                      style={{ color: activeSection === section.id ? '#292929' : '#826d4a' }}
+                    >
+                      <Icon size={14} className="xs:w-4 xs:h-4 sm:w-[18px] sm:h-[18px]" />
+                      <span>{section.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
             </div>
           </div>
         </div>
 
-        {/* Contenu */}
-        <div className="container mx-auto px-4 py-8">
-          <div className="grid md:grid-cols-3 gap-8">
-            {/* Section principale */}
-            <div className="md:col-span-2">
+
+        <div className="container mx-auto px-2 xs:px-3 sm:px-4 py-4 xs:py-5 sm:py-6 md:py-8">
+          <div className="flex flex-col lg:grid lg:grid-cols-3 gap-4 xs:gap-5 sm:gap-6 md:gap-8">
+            
+            <div className="lg:col-span-2 order-2 lg:order-1">
               {activeSection === 'infos' && (
-                <div className="space-y-6">
-                  <div className="bg-gray-50 p-6 rounded-xl">
-                    <h2 className="text-xl font-bold mb-4" style={{ color: '#292929' }}>Description</h2>
-                    <p className="text-gray-600 leading-relaxed">{tournoi.description}</p>
+                <div className="space-y-3 xs:space-y-4 sm:space-y-5 md:space-y-6">
+                  
+                  <div className="bg-gray-50 p-3 xs:p-4 sm:p-5 md:p-6 rounded-lg xs:rounded-xl">
+                    <h2 className="text-base xs:text-lg sm:text-xl font-bold mb-2 xs:mb-3 sm:mb-4 text-gray-800">
+                      Description
+                    </h2>
+                    <p className="text-xs xs:text-sm sm:text-base text-gray-600 leading-relaxed">
+                      {tournoi.description}
+                    </p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-gray-50 p-4 rounded-xl">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Clock size={18} style={{ color: '#f8c741' }} />
-                        <span className="font-medium" style={{ color: '#292929' }}>Horaire</span>
+
+                  <div className="grid grid-cols-2 gap-2 xs:gap-3 sm:gap-4">
+                    <div className="bg-gray-50 p-2 xs:p-3 sm:p-4 rounded-lg xs:rounded-xl">
+                      <div className="flex items-center gap-1 xs:gap-2 mb-1 xs:mb-2">
+                        <Clock size={12} className="xs:w-4 xs:h-4 sm:w-[18px] sm:h-[18px] text-[#f8c741]" />
+                        <span className="text-[10px] xs:text-xs sm:text-sm font-medium text-gray-800">Horaire</span>
                       </div>
-                      <p className="text-gray-600">{tournoi.heure}</p>
+                      <p className="text-[10px] xs:text-xs sm:text-sm text-gray-600">{tournoi.heure}</p>
                     </div>
-                    <div className="bg-gray-50 p-4 rounded-xl">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Gamepad2 size={18} style={{ color: '#f8c741' }} />
-                        <span className="font-medium" style={{ color: '#292929' }}>Format</span>
+                    <div className="bg-gray-50 p-2 xs:p-3 sm:p-4 rounded-lg xs:rounded-xl">
+                      <div className="flex items-center gap-1 xs:gap-2 mb-1 xs:mb-2">
+                        <Gamepad2 size={12} className="xs:w-4 xs:h-4 sm:w-[18px] sm:h-[18px] text-[#f8c741]" />
+                        <span className="text-[10px] xs:text-xs sm:text-sm font-medium text-gray-800">Format</span>
                       </div>
-                      <p className="text-gray-600">{tournoi.format}</p>
+                      <p className="text-[10px] xs:text-xs sm:text-sm text-gray-600">{tournoi.format}</p>
                     </div>
-                    <div className="bg-gray-50 p-4 rounded-xl">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Target size={18} style={{ color: '#f8c741' }} />
-                        <span className="font-medium" style={{ color: '#292929' }}>Mode</span>
+                    <div className="bg-gray-50 p-2 xs:p-3 sm:p-4 rounded-lg xs:rounded-xl">
+                      <div className="flex items-center gap-1 xs:gap-2 mb-1 xs:mb-2">
+                        <Target size={12} className="xs:w-4 xs:h-4 sm:w-[18px] sm:h-[18px] text-[#f8c741]" />
+                        <span className="text-[10px] xs:text-xs sm:text-sm font-medium text-gray-800">Mode</span>
                       </div>
-                      <p className="text-gray-600">{tournoi.mode}</p>
+                      <p className="text-[10px] xs:text-xs sm:text-sm text-gray-600">{tournoi.mode}</p>
                     </div>
-                    <div className="bg-gray-50 p-4 rounded-xl">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Smartphone size={18} style={{ color: '#f8c741' }} />
-                        <span className="font-medium" style={{ color: '#292929' }}>Plateforme</span>
+                    <div className="bg-gray-50 p-2 xs:p-3 sm:p-4 rounded-lg xs:rounded-xl">
+                      <div className="flex items-center gap-1 xs:gap-2 mb-1 xs:mb-2">
+                        <Smartphone size={12} className="xs:w-4 xs:h-4 sm:w-[18px] sm:h-[18px] text-[#f8c741]" />
+                        <span className="text-[10px] xs:text-xs sm:text-sm font-medium text-gray-800">Plateforme</span>
                       </div>
-                      <p className="text-gray-600">Mobile</p>
+                      <p className="text-[10px] xs:text-xs sm:text-sm text-gray-600">Mobile</p>
                     </div>
                   </div>
 
-                  <div className="bg-gray-50 p-6 rounded-xl">
-                    <h2 className="text-xl font-bold mb-4" style={{ color: '#292929' }}>Organisation</h2>
-                    <p className="text-gray-600 mb-2">{tournoi.organisation}</p>
-                    <p className="text-gray-600">Contact: {tournoi.contact}</p>
+
+                  <div className="bg-gray-50 p-3 xs:p-4 sm:p-5 md:p-6 rounded-lg xs:rounded-xl">
+                    <h2 className="text-base xs:text-lg sm:text-xl font-bold mb-2 xs:mb-3 sm:mb-4 text-gray-800">
+                      Organisation
+                    </h2>
+                    <p className="text-xs xs:text-sm sm:text-base text-gray-600 mb-1">{tournoi.organisation}</p>
+                    <p className="text-xs xs:text-sm sm:text-base text-gray-600">Contact: {tournoi.contact}</p>
                   </div>
                 </div>
               )}
 
               {activeSection === 'reglement' && (
-                <div className="bg-gray-50 p-6 rounded-xl">
-                  <h2 className="text-xl font-bold mb-6" style={{ color: '#292929' }}>Règlement du tournoi</h2>
-                  <ul className="space-y-4">
+                <div className="bg-gray-50 p-3 xs:p-4 sm:p-5 md:p-6 rounded-lg xs:rounded-xl">
+                  <h2 className="text-base xs:text-lg sm:text-xl font-bold mb-3 xs:mb-4 sm:mb-5 md:mb-6 text-gray-800">
+                    Règlement
+                  </h2>
+                  <ul className="space-y-2 xs:space-y-3 sm:space-y-4">
                     {tournoi.reglement.map((regle: string, index: number) => (
-                      <li key={index} className="flex items-start gap-3">
-                        <span className="w-6 h-6 rounded-full bg-[#f8c74120] flex items-center justify-center shrink-0 mt-0.5">
-                          <span className="text-xs font-bold" style={{ color: '#f8c741' }}>{index + 1}</span>
+                      <li key={index} className="flex items-start gap-2 xs:gap-3">
+                        <span className="w-4 h-4 xs:w-5 xs:h-5 sm:w-6 sm:h-6 rounded-full bg-[#f8c74120] flex items-center justify-center shrink-0 mt-0.5">
+                          <span className="text-[8px] xs:text-[10px] sm:text-xs font-bold text-[#f8c741]">
+                            {index + 1}
+                          </span>
                         </span>
-                        <span className="text-gray-600">{regle}</span>
+                        <span className="text-[10px] xs:text-xs sm:text-sm text-gray-600">{regle}</span>
                       </li>
                     ))}
                   </ul>
@@ -273,120 +303,136 @@ export default function TournoiDetail({
               )}
             </div>
 
-            
-                      {/* Sidebar avec inscription */}
-                <div className="md:col-span-1">
-                <div className="bg-gray-50 p-6 rounded-xl sticky top-24">
-                    <h3 className="text-lg font-bold mb-4" style={{ color: '#292929' }}>
-                    {tournoi.id === 2 ? 'Squads inscrits' : 'Inscriptions'}
-                    </h3>
-                    
-                    <div className="mb-4 p-3 bg-blue-50 rounded-lg">
-                    <div className="flex items-center gap-2 mb-2">
-                        <Calendar size={16} className="text-blue-600" />
-                        <span className="text-sm font-medium text-blue-800">Période d&apos;inscription</span>
-                    </div>
-                    <p className="text-xs text-blue-700">{message.periode}</p>
-                    </div>
 
-                    <div className="space-y-4 mb-6">
-                    <div className="flex justify-between items-center">
-                        <span className="text-gray-600">
-                        {tournoi.id === 2 ? 'Squads inscrits' : 'Places totales'}
+            <div className="lg:col-span-1 order-1 lg:order-2">
+              <div className="bg-gray-50 p-3 xs:p-4 sm:p-5 md:p-6 rounded-lg xs:rounded-xl sticky top-16 xs:top-20 sm:top-24">
+                <h3 className="text-sm xs:text-base sm:text-lg font-bold mb-2 xs:mb-3 sm:mb-4 text-gray-800">
+                  {tournoi.id === 2 ? 'Squads inscrits' : 'Inscriptions'}
+                </h3>
+                
+                
+                <div className="mb-2 xs:mb-3 sm:mb-4 p-2 xs:p-2.5 sm:p-3 bg-blue-50 rounded-lg">
+                  <div className="flex items-center gap-1 xs:gap-2 mb-1">
+                    <Calendar size={10} className="xs:w-3 xs:h-3 sm:w-4 sm:h-4 text-blue-600" />
+                    <span className="text-[8px] xs:text-[10px] sm:text-xs font-medium text-blue-800">
+                      Période
+                    </span>
+                  </div>
+                  <p className="text-[8px] xs:text-[10px] sm:text-xs text-blue-700">{message.periode}</p>
+                </div>
+
+
+                <div className="space-y-2 xs:space-y-3 sm:space-y-4 mb-3 xs:mb-4 sm:mb-5 md:mb-6">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] xs:text-xs sm:text-sm text-gray-600">
+                      {tournoi.id === 2 ? 'Squads' : 'Places'}
+                    </span>
+                    <span className="text-xs xs:text-sm sm:text-base font-bold text-gray-800">
+                      {loading ? (
+                        <span className="animate-pulse">...</span>
+                      ) : (
+                        tournoi.id === 2 ? inscriptionsCount : tournoi.places
+                      )}
+                    </span>
+                  </div>
+                  
+                  {tournoi.id === 1 && (
+                    <>
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] xs:text-xs sm:text-sm text-gray-600">Inscrites</span>
+                        <span className="text-xs xs:text-sm sm:text-base font-bold text-gray-800">
+                          {inscriptionsCount}
                         </span>
-                        <span className="font-bold text-gray-800">
-                        {loading ? (
-                            <span className="animate-pulse">...</span>
-                        ) : (
-                            tournoi.id === 2 ? inscriptionsCount : tournoi.places
-                        )}
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] xs:text-xs sm:text-sm text-gray-600">Restantes</span>
+                        <span className={`text-xs xs:text-sm sm:text-base font-bold ${
+                          placesRestantes > 0 ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {placesRestantes}
                         </span>
-                    </div>
-                    
-                    {tournoi.id === 1 && (
-                        <>
-                        <div className="flex justify-between items-center">
-                            <span className="text-gray-600">Inscrites</span>
-                            <span className="font-bold text-gray-800">{inscriptionsCount}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                            <span className="text-gray-600">Places restantes</span>
-                            <span className={`font-bold ${placesRestantes > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            {placesRestantes}
-                            </span>
-                        </div>
+                      </div>
 
-                        <div className="h-2 bg-gray-200 rounded-full">
-                            <div 
-                            className="h-full rounded-full transition-all"
-                            style={{ 
-                                width: tournoi.places > 0 ? `${(inscriptionsCount / tournoi.places) * 100}%` : '0%',
-                                backgroundColor: '#f8c741'
-                            }}
-                            ></div>
-                        </div>
-                        </>
-                    )}
-                    </div>
 
-                    {inscriptionStatus === 'fermee' && (
-                    <div className="mb-4 p-3 bg-orange-50 rounded-lg flex items-start gap-2">
-                        <AlertCircle size={16} className="text-orange-600 mt-0.5 shrink-0" />
-                        <p className="text-xs text-orange-700">
-                        {tournoi.id === 1 
-                            ? "Les inscriptions sont fermées (limite: 7 Mars 22h)"
-                            : "Les inscriptions sont fermées (du 9 au 20 Mars)"}
-                        </p>
-                    </div>
-                    )}
+                      <div className="h-1 xs:h-1.5 sm:h-2 bg-gray-200 rounded-full">
+                        <div 
+                          className="h-full rounded-full transition-all"
+                          style={{ 
+                            width: tournoi.places > 0 ? `${(inscriptionsCount / tournoi.places) * 100}%` : '0%',
+                            backgroundColor: '#f8c741'
+                          }}
+                        ></div>
+                      </div>
+                    </>
+                  )}
+                </div>
 
-                    <button
-                    onClick={() => setShowInscriptionModal(true)}
-                    disabled={buttonState.disabled}
-                    className={`w-full py-4 rounded-xl font-bold text-lg transition-all ${buttonState.className}`}
-                    style={{ 
-                        backgroundColor: buttonState.disabled ? undefined : '#f8c741', 
-                        color: buttonState.disabled ? undefined : '#292929' 
-                    }}
-                    >
-                    {buttonState.text}
-                    </button>
 
-                    <p className="text-xs text-center mt-4 text-gray-500">
-                    {message.limite}
+                {inscriptionStatus === 'fermee' && (
+                  <div className="mb-2 xs:mb-3 sm:mb-4 p-2 xs:p-2.5 sm:p-3 bg-orange-50 rounded-lg flex items-start gap-1 xs:gap-2">
+                    <AlertCircle size={10} className="xs:w-3 xs:h-3 sm:w-4 sm:h-4 text-orange-600 mt-0.5 shrink-0" />
+                    <p className="text-[8px] xs:text-[10px] sm:text-xs text-orange-700">
+                      {tournoi.id === 1 ? "Fermé (limite: 7 Mars 22h)" : "Fermé (du 9 au 20 Mars)"}
                     </p>
+                  </div>
+                )}
 
-                    {tournoi.id === 2 && (
-                    <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                        <p className="text-xs text-blue-600 text-center">
-                        Finale en présentiel le 29 Mars 2026 à BAEC Ankadivato, Antananarivo
-                        </p>
-                    </div>
-                    )}
-                </div>
-                </div>
-                                    
+
+                <button
+                  onClick={() => setShowInscriptionModal(true)}
+                  disabled={buttonState.disabled}
+                  className={`w-full py-2 xs:py-2.5 sm:py-3 md:py-4 rounded-lg xs:rounded-xl font-bold text-xs xs:text-sm sm:text-base transition-all ${buttonState.className}`}
+                  style={{ 
+                    backgroundColor: buttonState.disabled ? undefined : '#f8c741', 
+                    color: buttonState.disabled ? undefined : '#292929' 
+                  }}
+                >
+                  {buttonState.text}
+                </button>
+
+
+                {tournoi.id === 2 && (
+                  <div className="mt-2 xs:mt-3 sm:mt-4 p-2 xs:p-2.5 sm:p-3 bg-blue-50 rounded-lg">
+                    <p className="text-[8px] xs:text-[10px] sm:text-xs text-blue-600 text-center">
+                      Finale: 29 Mars - BAEC Ankadivato
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
+
       {showInscriptionModal && tournoi.id === 1 && (
         <FormulaireInscriptionFemina
-            tournoiId={tournoi.id}
-            tournoiTitre={tournoi.titre}
-            onClose={() => setShowInscriptionModal(false)}
-            onSuccess={handleInscriptionSuccess}  // ← CHANGER ICI
+          tournoiId={tournoi.id}
+          tournoiTitre={tournoi.titre}
+          onClose={() => setShowInscriptionModal(false)}
+          onSuccess={handleInscriptionSuccess}
         />
-        )}
+      )}
 
-        {showInscriptionModal && tournoi.id === 2 && (
+      {showInscriptionModal && tournoi.id === 2 && (
         <FormulaireInscriptionTournament
-            tournoiId={tournoi.id}
-            tournoiTitre={tournoi.titre}
-            onClose={() => setShowInscriptionModal(false)}
-            onSuccess={handleInscriptionSuccess}  // ← CHANGER ICI
+          tournoiId={tournoi.id}
+          tournoiTitre={tournoi.titre}
+          onClose={() => setShowInscriptionModal(false)}
+          onSuccess={handleInscriptionSuccess}
         />
-        )}
+      )}
+
+
+      <style jsx>{`
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .hide-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
     </>
   );
 }

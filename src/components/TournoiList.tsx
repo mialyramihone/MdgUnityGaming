@@ -144,8 +144,8 @@ export default function TournoiList() {
 
   const getButtonText = (tournoiId: number, status: TournoiStatus): string => {
     if (status === 'complet') return 'Complet';
-    if (status === 'ferme') return 'Inscriptions fermées';
-    if (status === 'bientot') return 'Bientôt disponible';
+    if (status === 'ferme') return 'Fermé';
+    if (status === 'bientot') return 'Bientôt';
     if (status === 'termine') return 'Terminé';
     return "S'inscrire";
   };
@@ -157,7 +157,6 @@ export default function TournoiList() {
     return matchesJeu && matchesSearch;
   });
 
-  
   const tournoisRecents = filteredTournois.filter(t => t.status !== 'termine');
   const tournoisTermines = filteredTournois.filter(t => t.status === 'termine');
 
@@ -174,14 +173,13 @@ export default function TournoiList() {
 
   return (
     <div className="min-h-screen bg-white">
-      
-    
+      {/* Sous-navbar responsive */}
       <div className="border-b border-gray-200 sticky top-0 bg-white z-10">
-        <div className="container mx-auto px-4">
-          <div className="flex gap-8">
+        <div className="container mx-auto px-2 xs:px-3 sm:px-4">
+          <div className="flex gap-2 xs:gap-4 sm:gap-6 md:gap-8 overflow-x-auto hide-scrollbar">
             <button
               onClick={() => setActiveTab('tournoi')}
-              className={`py-4 px-2 font-medium border-b-2 transition-colors ${
+              className={`py-2 xs:py-3 sm:py-4 px-1 xs:px-2 font-medium border-b-2 transition-colors whitespace-nowrap text-xs xs:text-sm sm:text-base ${
                 activeTab === 'tournoi' ? 'border-[#f8c741]' : 'border-transparent'
               }`}
               style={{ color: activeTab === 'tournoi' ? '#292929' : '#826d4a' }}
@@ -190,7 +188,7 @@ export default function TournoiList() {
             </button>
             <button
               onClick={() => setActiveTab('classement')}
-              className={`py-4 px-2 font-medium border-b-2 transition-colors ${
+              className={`py-2 xs:py-3 sm:py-4 px-1 xs:px-2 font-medium border-b-2 transition-colors whitespace-nowrap text-xs xs:text-sm sm:text-base ${
                 activeTab === 'classement' ? 'border-[#f8c741]' : 'border-transparent'
               }`}
               style={{ color: activeTab === 'classement' ? '#292929' : '#826d4a' }}
@@ -199,7 +197,7 @@ export default function TournoiList() {
             </button>
             <button
               onClick={() => setActiveTab('resultat')}
-              className={`py-4 px-2 font-medium border-b-2 transition-colors ${
+              className={`py-2 xs:py-3 sm:py-4 px-1 xs:px-2 font-medium border-b-2 transition-colors whitespace-nowrap text-xs xs:text-sm sm:text-base ${
                 activeTab === 'resultat' ? 'border-[#f8c741]' : 'border-transparent'
               }`}
               style={{ color: activeTab === 'resultat' ? '#292929' : '#826d4a' }}
@@ -210,45 +208,50 @@ export default function TournoiList() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-2 xs:px-3 sm:px-4 py-4 xs:py-5 sm:py-6 md:py-8">
         {activeTab === 'tournoi' && (
-          <div className="space-y-6">
-            
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="space-y-4 xs:space-y-5 sm:space-y-6">
+            {/* Header avec recherche responsive */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 xs:gap-4">
               <div>
-                <h2 className="text-2xl font-bold text-gray-800">Tournois disponibles</h2>
-                <p className="text-sm text-gray-500">Découvrez tous nos tournois et inscrivez-vous</p>
+                <h2 className="text-lg xs:text-xl sm:text-2xl font-bold text-gray-800">
+                  Tournois disponibles
+                </h2>
+                <p className="text-xs xs:text-sm text-gray-500">
+                  Découvrez tous nos tournois
+                </p>
               </div>
               
-              <div className="relative w-full md:w-64">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <div className="relative w-full sm:w-56 md:w-64">
+                <Search className="absolute left-2 xs:left-3 top-1/2 transform -translate-y-1/2 w-3 h-3 xs:w-4 xs:h-4 text-gray-400" />
                 <input
                   type="text"
                   placeholder="Rechercher..."
-                  className="w-full pl-9 pr-4 py-2 rounded-lg border-2 border-[#f8c741] focus:outline-none transition-colors text-sm"
+                  className="w-full pl-7 xs:pl-9 pr-3 xs:pr-4 py-1.5 xs:py-2 rounded-lg border border-gray-200 focus:border-[#f8c741] focus:outline-none transition-colors text-xs xs:text-sm"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
             </div>
             
+            {/* Filtres jeux responsives */}
             <div className="border-b border-gray-200 pb-2">
-              <div className="flex gap-2 overflow-x-auto">
+              <div className="flex gap-1 xs:gap-2 overflow-x-auto hide-scrollbar">
                 <button
                   onClick={() => setSelectedJeu('all')}
-                  className={`px-4 py-2 rounded-full font-medium transition-all whitespace-nowrap text-sm ${
+                  className={`px-2 xs:px-3 sm:px-4 py-1 xs:py-1.5 sm:py-2 rounded-full font-medium transition-all whitespace-nowrap text-[10px] xs:text-xs sm:text-sm ${
                     selectedJeu === 'all' 
                       ? 'text-white bg-[#f8c741]' 
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
-                  Tous les jeux
+                  Tous
                 </button>
                 {jeux.map((jeu) => (
                   <button
                     key={jeu}
                     onClick={() => setSelectedJeu(jeu)}
-                    className={`px-4 py-2 rounded-full font-medium transition-all whitespace-nowrap text-sm ${
+                    className={`px-2 xs:px-3 sm:px-4 py-1 xs:py-1.5 sm:py-2 rounded-full font-medium transition-all whitespace-nowrap text-[10px] xs:text-xs sm:text-sm ${
                       selectedJeu === jeu 
                         ? 'text-white bg-[#f8c741]' 
                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -261,20 +264,21 @@ export default function TournoiList() {
             </div>
 
             {filteredTournois.length === 0 && (
-              <div className="text-center py-12">
-                <Gamepad2 className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                <p className="text-lg text-gray-500">Aucun tournoi ne correspond à votre recherche</p>
+              <div className="text-center py-8 xs:py-10 sm:py-12">
+                <Gamepad2 className="w-12 h-12 xs:w-14 xs:h-14 sm:w-16 sm:h-16 mx-auto mb-3 xs:mb-4 text-gray-300" />
+                <p className="text-sm xs:text-base text-gray-500">Aucun tournoi trouvé</p>
               </div>
             )}
 
-
+            {/* Tournois à venir */}
             {tournoisRecents.length > 0 && (
-              <div className="space-y-4">
-                <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                  <span className="w-2 h-2 bg-[#f8c741] rounded-full animate-pulse"></span>
+              <div className="space-y-3 xs:space-y-4">
+                <h3 className="text-base xs:text-lg sm:text-xl font-bold text-gray-800 flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 xs:w-2 xs:h-2 bg-[#f8c741] rounded-full animate-pulse"></span>
                   Tournois à venir
                 </h3>
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 xs:gap-4 sm:gap-5 lg:gap-6">
                   {tournoisRecents.map((tournoi) => {
                     const placesPrises = inscriptionsCount[tournoi.id] || 0;
                     const status = getTournoiStatus(tournoi.id, placesPrises, tournoi.places);
@@ -285,9 +289,9 @@ export default function TournoiList() {
                     return (
                       <div 
                         key={tournoi.id} 
-                        className={`bg-white rounded-xl overflow-hidden transition-all border-2 ${
+                        className={`bg-white rounded-lg xs:rounded-xl overflow-hidden transition-all border ${
                           isClickable 
-                            ? 'border-[#f8c741] cursor-pointer hover:shadow-xl hover:-translate-y-1' 
+                            ? 'border-[#f8c741] cursor-pointer hover:shadow-lg hover:-translate-y-1' 
                             : 'border-gray-200 opacity-80'
                         }`}
                         onClick={() => {
@@ -296,53 +300,55 @@ export default function TournoiList() {
                           }
                         }}
                       >
-                         <div 
-                            className="h-24 p-4 relative overflow-hidden"
-                            style={{ backgroundColor: tournoi.id === 2 ? 'transparent' : tournoi.couleur }}
-                          >
-                            {tournoi.id === 2 && (
-                              <>
-                                <Image
-                                  src="/images/freefire-bg.jpg" 
-                                  alt="Free Fire Background"
-                                  fill
-                                  className="object-cover"
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent"></div>
-                              </>
-                            )}
-                            
-                            <Gamepad2 className="w-12 h-12 absolute right-3 top-3 text-white opacity-20 z-10" />
-                            <div className="relative z-10">
-                              <h3 className="text-lg font-bold text-white mb-1">{tournoi.titre}</h3>
-                              <span className="text-xs px-2 py-1 bg-white/20 text-white rounded-full">
-                                {tournoi.jeu}
-                              </span>
-                            </div>
+                        {/* En-tête avec image */}
+                        <div className="h-16 xs:h-20 sm:h-24 p-2 xs:p-3 sm:p-4 relative overflow-hidden">
+                          {tournoi.id === 2 ? (
+                            <>
+                              <Image
+                                src="/images/freefire-bg.jpg" 
+                                alt="Free Fire Background"
+                                fill
+                                className="object-cover"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent"></div>
+                            </>
+                          ) : (
+                            <div className="absolute inset-0" style={{ backgroundColor: tournoi.couleur }} />
+                          )}
+                          
+                          <div className="relative z-10">
+                            <h3 className="text-xs xs:text-sm sm:text-base font-bold text-white line-clamp-2">
+                              {tournoi.titre}
+                            </h3>
+                            <span className="text-[8px] xs:text-[10px] px-1.5 xs:px-2 py-0.5 bg-white/20 text-white rounded-full mt-0.5 inline-block">
+                              {tournoi.jeu}
+                            </span>
                           </div>
+                        </div>
 
-                        <div className="p-4">
-                          <div className="flex items-center justify-between text-sm mb-3">
-                            <div className="flex items-center gap-2">
-                              <Calendar size={14} className="text-[#f8c741]" />
+                        {/* Corps de la carte */}
+                        <div className="p-2 xs:p-3 sm:p-4">
+                          <div className="flex items-center justify-between text-[10px] xs:text-xs sm:text-sm mb-2">
+                            <div className="flex items-center gap-1 xs:gap-2">
+                              <Calendar size={10} className="xs:w-3 xs:h-3 sm:w-4 sm:h-4 text-[#f8c741]" />
                               <span className="text-gray-600">
                                 {new Date(tournoi.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
                               </span>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <Clock size={14} className="text-[#f8c741]" />
+                            <div className="flex items-center gap-1 xs:gap-2">
+                              <Clock size={10} className="xs:w-3 xs:h-3 sm:w-4 sm:h-4 text-[#f8c741]" />
                               <span className="text-gray-600">{tournoi.heure}</span>
                             </div>
                           </div>
 
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-2">
-                              <Users size={14} className="text-[#f8c741]" />
-                              <span className="text-sm text-gray-600">
-                                {isIllimite ? `${placesPrises} inscrites` : `${placesPrises}/${tournoi.places} places`}
+                          <div className="flex items-center justify-between mb-2 xs:mb-3">
+                            <div className="flex items-center gap-1 xs:gap-2">
+                              <Users size={10} className="xs:w-3 xs:h-3 sm:w-4 sm:h-4 text-[#f8c741]" />
+                              <span className="text-[10px] xs:text-xs sm:text-sm text-gray-600">
+                                {isIllimite ? `${placesPrises} inscrits` : `${placesPrises}/${tournoi.places}`}
                               </span>
                             </div>
-                            <span className={`text-xs px-2 py-1 rounded-full ${
+                            <span className={`text-[8px] xs:text-[10px] px-1.5 xs:px-2 py-0.5 rounded-full ${
                               status === 'ouvert' ? 'bg-green-100 text-green-600' :
                               status === 'bientot' ? 'bg-blue-100 text-blue-600' :
                               status === 'ferme' ? 'bg-gray-100 text-gray-600' :
@@ -354,21 +360,22 @@ export default function TournoiList() {
                             </span>
                           </div>
 
+                          {/* Bouton */}
                           {tournoi.id === 1 ? (
                             <button 
-                              className="w-full mt-2 py-2 bg-red-500 text-white rounded-lg text-sm font-medium cursor-not-allowed opacity-75"
+                              className="w-full mt-1 xs:mt-2 py-1.5 xs:py-2 bg-red-500 text-white rounded-lg text-[10px] xs:text-xs sm:text-sm font-medium cursor-not-allowed opacity-75"
                               disabled
                             >
-                              Inscriptions fermées
+                              Fermé
                             </button>
                           ) : (tournoi.id === 2 && status === 'ouvert') ? (
-                            <button className="w-full mt-2 py-2 bg-[#f8c741] text-[#292929] rounded-lg text-sm font-medium flex items-center justify-center gap-1 hover:bg-[#f9d164] transition">
-                              Voir détails
-                              <ChevronRight size={16} />
+                            <button className="w-full mt-1 xs:mt-2 py-1.5 xs:py-2 bg-[#f8c741] text-[#292929] rounded-lg text-[10px] xs:text-xs sm:text-sm font-medium flex items-center justify-center gap-1 hover:bg-[#f9d164] transition">
+                              <span>Détails</span>
+                              <ChevronRight size={12} className="xs:w-3 xs:h-3 sm:w-4 sm:h-4" />
                             </button>
                           ) : (
                             <button 
-                              className="w-full mt-2 py-2 bg-gray-100 text-gray-500 rounded-lg text-sm font-medium cursor-not-allowed"
+                              className="w-full mt-1 xs:mt-2 py-1.5 xs:py-2 bg-gray-100 text-gray-500 rounded-lg text-[10px] xs:text-xs sm:text-sm font-medium cursor-not-allowed"
                               disabled
                             >
                               {getButtonText(tournoi.id, status)}
@@ -382,49 +389,44 @@ export default function TournoiList() {
               </div>
             )}
 
-            {/* Tournois terminés - En arrière-plan */}
+            {/* Tournois terminés */}
             {tournoisTermines.length > 0 && (
-              <div className="space-y-4 mt-8">
-                <h3 className="text-lg font-semibold text-gray-500 flex items-center gap-2">
-                  <span className="w-2 h-2 bg-gray-400 rounded-full"></span>
+              <div className="space-y-3 xs:space-y-4 mt-6 xs:mt-8">
+                <h3 className="text-sm xs:text-base sm:text-lg font-semibold text-gray-500 flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 xs:w-2 xs:h-2 bg-gray-400 rounded-full"></span>
                   Tournois terminés
                 </h3>
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 opacity-60">
-                  {tournoisTermines.map((tournoi) => {
-                    const placesPrises = inscriptionsCount[tournoi.id] || 0;
-
-                    return (
-                      <div 
-                        key={tournoi.id} 
-                        className="bg-gray-50 rounded-xl overflow-hidden border border-gray-200 grayscale"
-                      >
-                        <div 
-                          className="h-20 p-3 relative"
-                          style={{ backgroundColor: tournoi.couleur + '80' }}
-                        >
-                          <Gamepad2 className="w-8 h-8 absolute right-3 top-3 text-white opacity-20" />
-                          <h3 className="text-base font-bold text-white mb-1">{tournoi.titre}</h3>
-                          <span className="text-xs px-2 py-1 bg-white/20 text-white rounded-full">
-                            {tournoi.jeu}
-                          </span>
-                        </div>
-
-                        <div className="p-3">
-                          <div className="flex items-center justify-between text-xs mb-2">
-                            <div className="flex items-center gap-2">
-                              <Calendar size={12} className="text-gray-400" />
-                              <span className="text-gray-500">
-                                {new Date(tournoi.date).toLocaleDateString('fr-FR')}
-                              </span>
-                            </div>
-                            <span className="text-xs px-2 py-1 bg-gray-200 text-gray-600 rounded-full">
-                              Terminé
-                            </span>
-                          </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 xs:gap-4 opacity-60">
+                  {tournoisTermines.map((tournoi) => (
+                    <div 
+                      key={tournoi.id} 
+                      className="bg-gray-50 rounded-lg xs:rounded-xl overflow-hidden border border-gray-200 grayscale"
+                    >
+                      <div className="h-14 xs:h-16 sm:h-20 p-2 xs:p-3 relative">
+                        <div className="absolute inset-0" style={{ backgroundColor: tournoi.couleur + '80' }} />
+                        <div className="relative z-10">
+                          <h3 className="text-xs xs:text-sm sm:text-base font-bold text-white">
+                            {tournoi.titre}
+                          </h3>
                         </div>
                       </div>
-                    );
-                  })}
+
+                      <div className="p-2 xs:p-3">
+                        <div className="flex items-center justify-between text-[8px] xs:text-[10px] sm:text-xs">
+                          <div className="flex items-center gap-1 xs:gap-2">
+                            <Calendar size={8} className="xs:w-2 xs:h-2 sm:w-3 sm:h-3 text-gray-400" />
+                            <span className="text-gray-500">
+                              {new Date(tournoi.date).toLocaleDateString('fr-FR')}
+                            </span>
+                          </div>
+                          <span className="px-1 xs:px-1.5 py-0.5 bg-gray-200 text-gray-600 rounded-full">
+                            Terminé
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
@@ -443,6 +445,17 @@ export default function TournoiList() {
           onClose={() => setTournoiInscription(null)}
         />
       )}
+
+      {/* Style pour cacher la scrollbar */}
+      <style jsx>{`
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .hide-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
     </div>
   );
 }
