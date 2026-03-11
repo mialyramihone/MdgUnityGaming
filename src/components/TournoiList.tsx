@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Gamepad2, Calendar, Clock, Users, ChevronRight,  Trophy } from 'lucide-react';
+import { Search, Gamepad2, Calendar, Clock, Users, ChevronRight, Trophy, X } from 'lucide-react';
 import TournoiDetail from './TournoiDetail';
 import Classement from './Classement';
 import Resultat from './Resultat';
 import FormulaireInscription from './FormulaireInscription';
 import { Tournoi } from '@/types/tournoi';
+import Image from 'next/image';
 
 interface Joueuse {
   id: number;
@@ -19,7 +20,7 @@ interface Joueuse {
   date_inscription: string;
 }
 
-type TournoiStatus = 'ouvert' | 'bientot' | 'ferme' | 'complet';
+type TournoiStatus = 'ouvert' | 'bientot' | 'ferme' | 'complet' | 'termine';
 
 export default function TournoiList() {
   const [activeTab, setActiveTab] = useState<'tournoi' | 'classement' | 'resultat'>('tournoi');
@@ -87,7 +88,6 @@ export default function TournoiList() {
     }
   ];
 
-  
   const countTournoi1Inscriptions = async () => {
     try {
       const response = await fetch('/.netlify/functions/count-teams?tournamentId=1');
@@ -102,10 +102,7 @@ export default function TournoiList() {
   useEffect(() => {
     const fetchInscriptionsCount = async () => {
       try {
-        
         const count1 = await countTournoi1Inscriptions();
-        
-        
         const teamsRes = await fetch('/.netlify/functions/count-teams?tournamentId=2');
         const teamsData = await teamsRes.json();
         
@@ -149,6 +146,7 @@ export default function TournoiList() {
     if (status === 'complet') return 'Complet';
     if (status === 'ferme') return 'Inscriptions fermées';
     if (status === 'bientot') return 'Bientôt disponible';
+    if (status === 'termine') return 'Terminé';
     return "S'inscrire";
   };
 
@@ -158,6 +156,10 @@ export default function TournoiList() {
                          tournoi.jeu.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesJeu && matchesSearch;
   });
+
+  
+  const tournoisRecents = filteredTournois.filter(t => t.status !== 'termine');
+  const tournoisTermines = filteredTournois.filter(t => t.status === 'termine');
 
   if (selectedTournoi) {
     return (
@@ -171,8 +173,9 @@ export default function TournoiList() {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#ffffff' }}>
-      {/* Sous-navbar */}
+    <div className="min-h-screen bg-white">
+      
+    
       <div className="border-b border-gray-200 sticky top-0 bg-white z-10">
         <div className="container mx-auto px-4">
           <div className="flex gap-8">
@@ -213,35 +216,31 @@ export default function TournoiList() {
             
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
-                <h2 className="text-2xl font-bold" style={{ color: '#292929' }}>Tournois disponibles</h2>
-                <p className="text-sm" style={{ color: '#826d4a' }}>Découvrez tous nos tournois et inscrivez-vous</p>
+                <h2 className="text-2xl font-bold text-gray-800">Tournois disponibles</h2>
+                <p className="text-sm text-gray-500">Découvrez tous nos tournois et inscrivez-vous</p>
               </div>
               
-              
               <div className="relative w-full md:w-64">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4" style={{ color: '#826d4a' }} />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   type="text"
                   placeholder="Rechercher..."
-                  className="w-full pl-9 pr-4 py-2 rounded-lg border-2 focus:outline-none focus:border-[#f8c741] transition-colors text-sm"
-                  style={{ borderColor: '#f8c741' }}
+                  className="w-full pl-9 pr-4 py-2 rounded-lg border-2 border-[#f8c741] focus:outline-none transition-colors text-sm"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
             </div>
-
-            {/* Navbar des jeux (comme Classement et Résultat) */}
+            
             <div className="border-b border-gray-200 pb-2">
               <div className="flex gap-2 overflow-x-auto">
                 <button
                   onClick={() => setSelectedJeu('all')}
                   className={`px-4 py-2 rounded-full font-medium transition-all whitespace-nowrap text-sm ${
                     selectedJeu === 'all' 
-                      ? 'text-white' 
+                      ? 'text-white bg-[#f8c741]' 
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
-                  style={{ backgroundColor: selectedJeu === 'all' ? '#f8c741' : undefined }}
                 >
                   Tous les jeux
                 </button>
@@ -251,10 +250,9 @@ export default function TournoiList() {
                     onClick={() => setSelectedJeu(jeu)}
                     className={`px-4 py-2 rounded-full font-medium transition-all whitespace-nowrap text-sm ${
                       selectedJeu === jeu 
-                        ? 'text-white' 
+                        ? 'text-white bg-[#f8c741]' 
                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }`}
-                    style={{ backgroundColor: selectedJeu === jeu ? '#f8c741' : undefined }}
                   >
                     {jeu}
                   </button>
@@ -262,48 +260,6 @@ export default function TournoiList() {
               </div>
             </div>
 
-            {/* Statistiques rapides (comme Classement) */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-linear-to-br from-[#f8c741] to-[#f7b731] p-5 rounded-xl">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-[#292929]/70">Total tournois</p>
-                    <p className="text-2xl font-bold text-[#292929]">{filteredTournois.length}</p>
-                  </div>
-                  <div className="bg-white/20 p-3 rounded-lg">
-                    <Trophy className="w-6 h-6 text-[#292929]" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-linear-to-br from-gray-700 to-gray-900 p-5 rounded-xl">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-white/70">Total inscriptions</p>
-                    <p className="text-2xl font-bold text-white">
-                      {Object.values(inscriptionsCount).reduce((a, b) => a + b, 0)}
-                    </p>
-                  </div>
-                  <div className="bg-white/10 p-3 rounded-lg">
-                    <Users className="w-6 h-6 text-white" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-linear-to-br from-purple-600 to-purple-800 p-5 rounded-xl">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-white/70">Jeux disponibles</p>
-                    <p className="text-2xl font-bold text-white">{jeux.length}</p>
-                  </div>
-                  <div className="bg-white/10 p-3 rounded-lg">
-                    <Gamepad2 className="w-6 h-6 text-white" />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Message si aucun résultat */}
             {filteredTournois.length === 0 && (
               <div className="text-center py-12">
                 <Gamepad2 className="w-16 h-16 mx-auto mb-4 text-gray-300" />
@@ -311,104 +267,167 @@ export default function TournoiList() {
               </div>
             )}
 
-            {/* Liste des tournois en grille (style carte) */}
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredTournois.map((tournoi) => {
-                const placesPrises = inscriptionsCount[tournoi.id] || 0;
-                const status = getTournoiStatus(tournoi.id, placesPrises, tournoi.places);
-                const buttonText = getButtonText(tournoi.id, status);
-                
-                const isIllimite = tournoi.id === 2;
-                
-                
-                const isClickable = tournoi.id === 2 && status === 'ouvert';
 
-                return (
-                  <div 
-                    key={tournoi.id} 
-                    className={`bg-white rounded-xl overflow-hidden transition-all border border-gray-200 ${
-                      isClickable ? 'cursor-pointer hover:shadow-xl hover:-translate-y-1' : 'cursor-not-allowed opacity-80'
-                    }`}
-                    onClick={() => {
-                      if (isClickable) {
-                        setSelectedTournoi(tournoi);
-                      }
-                    }}
-                  >
-                    {/* En-tête coloré */}
-                    <div 
-                      className="h-24 p-4 relative"
-                      style={{ backgroundColor: tournoi.couleur }}
-                    >
-                      <Gamepad2 className="w-12 h-12 absolute right-3 top-3 text-white opacity-20" />
-                      <div>
-                        <h3 className="text-lg font-bold text-white mb-1">{tournoi.titre}</h3>
-                        <span className="text-xs px-2 py-1 bg-white/20 text-white rounded-full">
-                          {tournoi.jeu}
-                        </span>
+            {tournoisRecents.length > 0 && (
+              <div className="space-y-4">
+                <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                  <span className="w-2 h-2 bg-[#f8c741] rounded-full animate-pulse"></span>
+                  Tournois à venir
+                </h3>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {tournoisRecents.map((tournoi) => {
+                    const placesPrises = inscriptionsCount[tournoi.id] || 0;
+                    const status = getTournoiStatus(tournoi.id, placesPrises, tournoi.places);
+                    
+                    const isIllimite = tournoi.id === 2;
+                    const isClickable = tournoi.id === 2 && status === 'ouvert';
+
+                    return (
+                      <div 
+                        key={tournoi.id} 
+                        className={`bg-white rounded-xl overflow-hidden transition-all border-2 ${
+                          isClickable 
+                            ? 'border-[#f8c741] cursor-pointer hover:shadow-xl hover:-translate-y-1' 
+                            : 'border-gray-200 opacity-80'
+                        }`}
+                        onClick={() => {
+                          if (isClickable) {
+                            setSelectedTournoi(tournoi);
+                          }
+                        }}
+                      >
+                         <div 
+                            className="h-24 p-4 relative overflow-hidden"
+                            style={{ backgroundColor: tournoi.id === 2 ? 'transparent' : tournoi.couleur }}
+                          >
+                            {tournoi.id === 2 && (
+                              <>
+                                <Image
+                                  src="/images/freefire-bg.jpg" 
+                                  alt="Free Fire Background"
+                                  fill
+                                  className="object-cover"
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent"></div>
+                              </>
+                            )}
+                            
+                            <Gamepad2 className="w-12 h-12 absolute right-3 top-3 text-white opacity-20 z-10" />
+                            <div className="relative z-10">
+                              <h3 className="text-lg font-bold text-white mb-1">{tournoi.titre}</h3>
+                              <span className="text-xs px-2 py-1 bg-white/20 text-white rounded-full">
+                                {tournoi.jeu}
+                              </span>
+                            </div>
+                          </div>
+
+                        <div className="p-4">
+                          <div className="flex items-center justify-between text-sm mb-3">
+                            <div className="flex items-center gap-2">
+                              <Calendar size={14} className="text-[#f8c741]" />
+                              <span className="text-gray-600">
+                                {new Date(tournoi.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Clock size={14} className="text-[#f8c741]" />
+                              <span className="text-gray-600">{tournoi.heure}</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <Users size={14} className="text-[#f8c741]" />
+                              <span className="text-sm text-gray-600">
+                                {isIllimite ? `${placesPrises} inscrites` : `${placesPrises}/${tournoi.places} places`}
+                              </span>
+                            </div>
+                            <span className={`text-xs px-2 py-1 rounded-full ${
+                              status === 'ouvert' ? 'bg-green-100 text-green-600' :
+                              status === 'bientot' ? 'bg-blue-100 text-blue-600' :
+                              status === 'ferme' ? 'bg-gray-100 text-gray-600' :
+                              'bg-red-100 text-red-600'
+                            }`}>
+                              {status === 'ouvert' ? 'Ouvert' :
+                               status === 'bientot' ? 'Bientôt' :
+                               status === 'ferme' ? 'Fermé' : 'Complet'}
+                            </span>
+                          </div>
+
+                          {tournoi.id === 1 ? (
+                            <button 
+                              className="w-full mt-2 py-2 bg-red-500 text-white rounded-lg text-sm font-medium cursor-not-allowed opacity-75"
+                              disabled
+                            >
+                              Inscriptions fermées
+                            </button>
+                          ) : (tournoi.id === 2 && status === 'ouvert') ? (
+                            <button className="w-full mt-2 py-2 bg-[#f8c741] text-[#292929] rounded-lg text-sm font-medium flex items-center justify-center gap-1 hover:bg-[#f9d164] transition">
+                              Voir détails
+                              <ChevronRight size={16} />
+                            </button>
+                          ) : (
+                            <button 
+                              className="w-full mt-2 py-2 bg-gray-100 text-gray-500 rounded-lg text-sm font-medium cursor-not-allowed"
+                              disabled
+                            >
+                              {getButtonText(tournoi.id, status)}
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
-                    {/* Corps de la carte */}
-                    <div className="p-4">
-                      <div className="flex items-center justify-between text-sm mb-3">
-                        <div className="flex items-center gap-2">
-                          <Calendar size={14} style={{ color: '#f8c741' }} />
-                          <span className="text-gray-600">
-                            {new Date(tournoi.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+            {/* Tournois terminés - En arrière-plan */}
+            {tournoisTermines.length > 0 && (
+              <div className="space-y-4 mt-8">
+                <h3 className="text-lg font-semibold text-gray-500 flex items-center gap-2">
+                  <span className="w-2 h-2 bg-gray-400 rounded-full"></span>
+                  Tournois terminés
+                </h3>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 opacity-60">
+                  {tournoisTermines.map((tournoi) => {
+                    const placesPrises = inscriptionsCount[tournoi.id] || 0;
+
+                    return (
+                      <div 
+                        key={tournoi.id} 
+                        className="bg-gray-50 rounded-xl overflow-hidden border border-gray-200 grayscale"
+                      >
+                        <div 
+                          className="h-20 p-3 relative"
+                          style={{ backgroundColor: tournoi.couleur + '80' }}
+                        >
+                          <Gamepad2 className="w-8 h-8 absolute right-3 top-3 text-white opacity-20" />
+                          <h3 className="text-base font-bold text-white mb-1">{tournoi.titre}</h3>
+                          <span className="text-xs px-2 py-1 bg-white/20 text-white rounded-full">
+                            {tournoi.jeu}
                           </span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Clock size={14} style={{ color: '#f8c741' }} />
-                          <span className="text-gray-600">{tournoi.heure}</span>
+
+                        <div className="p-3">
+                          <div className="flex items-center justify-between text-xs mb-2">
+                            <div className="flex items-center gap-2">
+                              <Calendar size={12} className="text-gray-400" />
+                              <span className="text-gray-500">
+                                {new Date(tournoi.date).toLocaleDateString('fr-FR')}
+                              </span>
+                            </div>
+                            <span className="text-xs px-2 py-1 bg-gray-200 text-gray-600 rounded-full">
+                              Terminé
+                            </span>
+                          </div>
                         </div>
                       </div>
-
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <Users size={14} style={{ color: '#f8c741' }} />
-                          <span className="text-sm text-gray-600">
-                            {isIllimite ? `${placesPrises} inscrites` : `${placesPrises}/${tournoi.places} places`}
-                          </span>
-                        </div>
-                        <span className={`text-xs px-2 py-1 rounded-full ${
-                          status === 'ouvert' ? 'bg-green-100 text-green-600' :
-                          status === 'bientot' ? 'bg-blue-100 text-blue-600' :
-                          status === 'ferme' ? 'bg-gray-100 text-gray-600' :
-                          'bg-red-100 text-red-600'
-                        }`}>
-                          {status === 'ouvert' ? 'Ouvert' :
-                           status === 'bientot' ? 'Bientôt' :
-                           status === 'ferme' ? 'Fermé' : 'Complet'}
-                        </span>
-                      </div>
-
-                      {/* Bouton Voir détails - ROUGE pour le tournoi 1 */}
-                      {tournoi.id === 1 ? (
-                        <button 
-                          className="w-full mt-2 py-2 bg-red-500 text-white rounded-lg text-sm font-medium cursor-not-allowed opacity-75"
-                          disabled
-                        >
-                          Inscriptions fermées
-                        </button>
-                      ) : (tournoi.id === 2 && status === 'ouvert') ? (
-                        <button className="w-full mt-2 py-2 bg-[#f8c741] text-[#292929] rounded-lg text-sm font-medium flex items-center justify-center gap-1 hover:bg-[#f9d164] transition">
-                          Voir détails
-                          <ChevronRight size={16} />
-                        </button>
-                      ) : (
-                        <button 
-                          className="w-full mt-2 py-2 bg-gray-100 text-gray-500 rounded-lg text-sm font-medium cursor-not-allowed"
-                          disabled
-                        >
-                          {buttonText}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )}
 

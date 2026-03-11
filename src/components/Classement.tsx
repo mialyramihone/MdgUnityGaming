@@ -67,7 +67,6 @@ export default function Classement({ tournois }: ClassementProps) {
      
       
 
-      {/* Header avec filtres */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 px-4">
         <div>
           <h2 className="text-2xl font-bold" style={{ color: '#292929' }}>Classement des tournois</h2>
@@ -75,7 +74,6 @@ export default function Classement({ tournois }: ClassementProps) {
         </div>
 
         <div className="flex gap-3">
-          {/* Sélecteur de tournoi */}
           <div className="relative">
             <select
               value={selectedTournoi}
@@ -96,7 +94,7 @@ export default function Classement({ tournois }: ClassementProps) {
             <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: '#826d4a' }} />
           </div>
 
-          {/* Sélecteur de vue */}
+
           <div className="flex rounded-xl border-2 border-[#f8c741] overflow-hidden">
             <button
               onClick={() => setViewMode('general')}
@@ -158,7 +156,7 @@ export default function Classement({ tournois }: ClassementProps) {
         </div>
       </div>
 
-      {/* Message si aucun résultat */}
+
       {classementActuel.length === 0 && (
         <div className="text-center py-12 px-4">
           <Gamepad2 className="w-16 h-16 mx-auto mb-4 text-gray-300" />
@@ -166,7 +164,7 @@ export default function Classement({ tournois }: ClassementProps) {
         </div>
       )}
 
-      {/* Tableau de classement */}
+
       {classementActuel.length > 0 && (
         <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200 mx-4">
           <div className="p-4 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center">
