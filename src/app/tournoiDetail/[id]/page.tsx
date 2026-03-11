@@ -63,7 +63,7 @@ const tournois: Tournoi[] = [
     couleur: '#826d4a',
     cashPrize: ['1ère place: 50 000 FCFA', '2ème place: 25 000 FCFA', '3ème place: 10 000 FCFA'],
     reglement: [
-      'Équipe de 4 joueuses',
+      'Équipe de 4 joueurs',
       'Finale en présentiel à BAEC Ankadivato, Antananarivo',
       'Mode Esport',
       'no Emulateur',

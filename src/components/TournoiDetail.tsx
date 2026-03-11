@@ -151,7 +151,7 @@ export default function TournoiDetail({
             <Gamepad2 className="w-40 h-40 text-white opacity-20" />
           </div>
           
-          {/* Bouton retour */}
+          
           <button
             onClick={onBack}
             className="absolute top-6 left-6 flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-lg text-white hover:bg-white/30 transition-all z-10"

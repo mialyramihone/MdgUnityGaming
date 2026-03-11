@@ -49,7 +49,7 @@ export default function TournoiList() {
       couleur: '#f8c741',
       cashPrize: ['1ère place: 20 000 FCFA', '2ème place: 10 000 FCFA', '3ème place: 5 000 FCFA'],
       reglement: [
-        'Être une joueuse',
+        'Être une joueur',
         'Avoir un compte Free Fire valide',
         'Présence 15min avant le début',
         'Respecter les autres participantes',

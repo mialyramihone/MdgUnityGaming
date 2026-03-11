@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
-import { Calendar, Clock, Gamepad2, Users, ArrowRight, Sun } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Calendar, Clock, Gamepad2, Users, ArrowRight, Sun, Trophy, X } from 'lucide-react';
+import Image from 'next/image';
 
 interface Tournoi {
   id: number;
@@ -17,6 +18,11 @@ interface Tournoi {
 }
 
 export default function Accueil() {
+
+ const [showAd, setShowAd] = useState(true); 
+
+
+
   const [tournoisEnVedette] = useState<Tournoi[]>([
     // {
     //   id: 1,
@@ -42,16 +48,73 @@ export default function Accueil() {
     }
   ]);
 
+   useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowAd(true);
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, []); 
+
+  const closeAd = () => {
+    setShowAd(false);
+  };
+
   return (
     <div className="min-h-screen bg-linear-to-b from-amber-50 via-orange-50 to-yellow-50">
-      {/* Hero Caramel */}
+
       <div className="relative overflow-hidden bg-linear-to-br from-[#ffc629] to-[#ffb909]">
-        {/* Éléments nature */}
-        
+    
+
+{showAd && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+    <div 
+      className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+      onClick={closeAd}
+    ></div>
+    
+    <div className="relative w-96 animate-fade-in">
+      <button
+        onClick={closeAd}
+        className="absolute -top-3 -right-3 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full p-2 hover:bg-white/30 transition-colors z-10"
+      >
+        <X className="w-5 h-5 text-white" />
+      </button>
+
+      <div className="relative">
+        <div className="relative h-80 w-full">
+          <Image
+            src="/images/freefire-character.png" 
+            alt="Free Fire Character"
+            fill
+            className="object-contain"
+          />
+        </div>
+
+        <div className="absolute top-28 left-0 right-0 text-center">
+          <p className="text-white text-sm font-medium mb-1 drop-shadow-lg">TOURNOI</p>
+          <p className="text-white text-5xl font-black mb-2 drop-shadow-lg">FREE FIRE</p>
+          <p className="text-[#f8c741] text-3xl font-bold drop-shadow-lg">23 MARS 2026</p>
+        </div>
+
+        <div className="absolute bottom-8 left-0 right-0 text-center">
+          <Link
+            href="/tournoi/"
+            onClick={closeAd}
+            className="inline-block px-8 py-2 bg-white/10 backdrop-blur-sm text-white rounded-full font-bold border border-white/30 hover:bg-white/20 transition-all"
+          >
+            S'inscrire maintenant
+          </Link>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+    
 
         <div className="relative container mx-auto px-4 py-24 md:py-32">
           <div className="max-w-3xl mx-auto text-center">
-            {/* Badge */}
+            
             <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full mb-8 border border-white/30">
               <Sun className="w-4 h-4 text-white" />
               <span className="text-sm text-white">MDG Unity Gaming</span>
@@ -88,47 +151,79 @@ export default function Accueil() {
           </div>
         </div>
 
-        {/* Vague caramel */}
-        <div className="absolute bottom-0 left-0 right-0">
-          <svg viewBox="0 0 1440 120" fill="none" className="w-full h-auto">
-            <path d="M0 120L60 105C120 90 240 60 360 45C480 30 600 30 720 37.5C840 45 960 60 1080 67.5C1200 75 1320 75 1380 75L1440 75V120H1380C1320 120 1200 120 1080 120C960 120 840 120 720 120C600 120 480 120 360 120C240 120 120 120 60 120H0Z" 
-              fill="#fef3c7" 
-            />
-          </svg>
-        </div>
       </div>
 
-      {/* Stats Caramel */}
-      <div className="container mx-auto px-4 -mt-16 relative z-10">
-        <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-          <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl p-6 text-center border border-amber-200">
-            <div className="w-16 h-16 bg-[#f8c741]/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Gamepad2 className="w-8 h-8 text-[#f8c741]" />
-            </div>
-            <div className="text-3xl font-bold text-[#363225]-800 mb-2">1</div>
-            <div className="text-[#363225]">Tournoi actif</div>
-          </div>
+<div className="relative overflow-hidden bg-gradient-to-r from-[#f8c741] to-[#ffd966] py-4">
+   <div className="absolute left-0 top-0 bottom-0 w-50 bg-gradient-to-r from-[#f8c741] to-transparent z-10"></div>
+  <div className="absolute right-0 top-0 bottom-0 w-50 bg-gradient-to-l from-[#ffd966] to-transparent z-10"></div>
 
-          <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl p-6 text-center border border-amber-200 transform md:translate-y-4">
-            <div className="w-16 h-16 bg-[#f8c741]/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Gamepad2 className="w-8 h-8 text-[#f8c741]" />
-            </div>
-            <div className="text-3xl font-bold text-[#363225]-800 mb-2">Free Fire</div>
-            <div className="text-[#363225]-600">Jeu principal</div>
-          </div>
+  <div className="flex whitespace-nowrap animate-scroll w-max">
+    {/* Trois séries pour éviter tout espace */}
+    {[1, 2, 3].map((_, idx) => (
+      <div key={idx} className="flex items-center">
+        <span className="text-white font-bold text-lg mx-3">FREE FIRE</span>
+        <span className="text-white text-2xl mx-1">•</span>
+        <span className="text-white font-bold text-lg mx-3">BLOOD STRIKE</span>
+        <span className="text-white text-2xl mx-1">•</span>
+        <span className="text-white font-bold text-lg mx-3">MLBB</span>
+        <span className="text-white text-2xl mx-1">•</span>
+        <span className="text-white font-bold text-lg mx-3">PUBG</span>
+        <span className="text-white text-2xl mx-1">•</span>
+        <span className="text-white font-bold text-lg mx-3">GENSHIN</span>
+        <span className="text-white text-2xl mx-1">•</span>
+        <span className="text-white font-bold text-lg mx-3">ROBLOX</span>
+        <span className="text-white text-2xl mx-1">•</span>
+        <span className="text-white font-bold text-lg mx-3">VALORANT</span>
+        <span className="text-white text-2xl mx-1">•</span>
+        <span className="text-white font-bold text-lg mx-3">FARLIGHT</span>
+        <span className="text-white text-2xl mx-1">•</span>
+      </div>
+    ))}
+  </div>
+</div>
 
-          <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl p-6 text-center border border-amber-200">
-            <div className="w-16 h-16 bg-[#f8c741]/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Calendar className="w-8 h-8 text-[#f8c741]" />
-            </div>
-            <div className="text-2xl font-bold text-[#363225]-800 mb-2">23 Mars 2026</div>
-            <div className="text-[#363225]-600">Prochain tournoi</div>
+
+
+    <div className="container mx-auto px-4 py-16">
+      <div className="text-center mb-12">
+        <h2 className="text-4xl font-bold text-gray-800 mb-4">Comment ça marche ?</h2>
+        <p className="text-xl text-gray-500">Rejoindre un tournoi en 3 étapes simples</p>
+      </div>
+      
+      <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-[#f8c741]/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <span className="text-2xl font-bold text-[#f8c741]">1</span>
           </div>
+          <h3 className="text-xl font-bold text-gray-800 mb-2">Inscris-toi</h3>
+          <p className="text-gray-500">Crée ton compte gratuitement</p>
+        </div>
+        <div className="text-center">
+          <div className="w-16 h-16 bg-[#f8c741]/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <span className="text-2xl font-bold text-[#f8c741]">2</span>
+          </div>
+          <h3 className="text-xl font-bold text-gray-800 mb-2">Choisis ton tournoi</h3>
+          <p className="text-gray-500">Parmi nos nombreux tournois</p>
+        </div>
+        <div className="text-center">
+          <div className="w-16 h-16 bg-[#f8c741]/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <span className="text-2xl font-bold text-[#f8c741]">3</span>
+          </div>
+          <h3 className="text-xl font-bold text-gray-800 mb-2">Joue et gagne</h3>
+          <p className="text-gray-500">Affronte les meilleurs et remporte des prix</p>
         </div>
       </div>
+    </div>
 
-      {/* Tournois Cards Caramel */}
-      <div className="container mx-auto px-4 py-24">
+    <div className="relative flex items-center justify-center my-12">
+  <div className="flex-grow h-px bg-gradient-to-r from-transparent via-[#f8c741] to-transparent"></div>
+  <div className="mx-4 w-10 h-10 bg-[#f8c741]/10 rounded-full flex items-center justify-center">
+    <Gamepad2 className="w-5 h-5 text-[#f8c741]" />
+  </div>
+  <div className="flex-grow h-px bg-gradient-to-r from-transparent via-[#f8c741] to-transparent"></div>
+</div>
+
+    <div className="container mx-auto px-4 py-24">
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold text-[#363225]-800 mb-4">
             Tournois à venir
@@ -138,124 +233,124 @@ export default function Accueil() {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-            {tournoisEnVedette.map((tournoi, index) => (
-              <div 
-                key={tournoi.id}
-                className="group bg-white rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden border border-[#f8c741]/20"
-              >
-                {/* Bandeau */}
-                <div className={`h-2 bg-linear-to-r ${index === 0 ? 'from-[#f8c741] to-[#e5b53a]' : 'from-[#f8c741] to-[#d4a02a]'}`}></div>
-                
-                <div className="p-8">
-                  {/* Badge */}
-                  <div className="absolute top-6 right-6">
-                    <span className="px-4 py-2 bg-[#f8c741]/10 text-[#f8c741] rounded-full text-sm font-medium flex items-center gap-1">
-                      <span className="w-2 h-2 bg-[#f8c741] rounded-full animate-pulse"></span>
-                      Inscriptions ouvertes
-                    </span>
-                  </div>
-
-                  {/* En-tête */}
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${index === 0 ? 'bg-[#f8c741]/10' : 'bg-[#f8c741]/10'}`}>
-                      <Gamepad2 className="w-6 h-6 text-[#f8c741]" />
-                    </div>
-                    <div>
-                      <span className="text-sm text-gray-500">Jeu</span>
-                      <p className="font-semibold text-gray-800">{tournoi.jeu}</p>
-                    </div>
-                  </div>
-
-                  <h3 className="text-2xl font-bold text-gray-800 mb-4">
-                    {tournoi.titre}
-                  </h3>
-
-                  {/* Grille d'infos */}
-                  <div className="grid grid-cols-2 gap-4 mb-8">
-                    <div className="bg-[#f8c741]/5 rounded-xl p-4">
-                      <Calendar className="w-5 h-5 text-[#f8c741] mb-2" />
-                      <div className="text-sm text-gray-500">Date</div>
-                      <div className="font-semibold text-gray-800">
-                        {new Date(tournoi.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
-                      </div>
-                    </div>
-                    
-                    <div className="bg-[#f8c741]/5 rounded-xl p-4">
-                      <Clock className="w-5 h-5 text-[#f8c741] mb-2" />
-                      <div className="text-sm text-gray-500">Heure</div>
-                      <div className="font-semibold text-gray-800">{tournoi.heure}</div>
-                    </div>
-                    
-                    <div className="bg-[#f8c741]/5 rounded-xl p-4">
-                      <Gamepad2 className="w-5 h-5 text-[#f8c741] mb-2" />
-                      <div className="text-sm text-gray-500">Format</div>
-                      <div className="font-semibold text-gray-800">{tournoi.format}</div>
-                    </div>
-                    
-                    <div className="bg-[#f8c741]/5 rounded-xl p-4">
-                      <Users className="w-5 h-5 text-[#f8c741] mb-2" />
-                      <div className="text-sm text-gray-500">Places</div>
-                      <div className="font-semibold text-gray-800">{tournoi.places}</div>
-                    </div>
-                  </div>
-
-                  <Link 
-                    href={`/tournoiDetail/${tournoi.id}`}
-                    className={`w-full py-4 rounded-xl font-semibold text-lg flex items-center justify-center gap-2 transition-all group/btn bg-[#f8c741] text-gray-900 hover:bg-[#e5b53a]`}
-                  >
-                    <span>Voir les détails</span>
-                    <ArrowRight className="w-5 h-5 group-hover/btn:translate-x-1 transition-transform" />
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-
-   {/* CTA avec stats */}
-<div className="bg-gray-50 py-20">
-  <div className="container mx-auto px-4">
-    <div className="max-w-4xl mx-auto bg-white rounded-3xl shadow-xl p-12">
-      <div className="grid md:grid-cols-2 gap-8 items-center">
-        <div>
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-4">
-            Prêt à relever le défi ?
-          </h2>
-          <p className="text-gray-500 mb-6">
-            Rejoins la communauté et montre tes talents
-          </p>
-          <Link 
-            href="/tournoi" 
-            className="inline-block px-8 py-4 bg-[#f8c741] text-gray-900 rounded-xl font-bold hover:bg-[#e5b53a] transition-all shadow-lg"
-          >
-            Commencer maintenant
-          </Link>
-        </div>
+     <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+  {tournoisEnVedette.map((tournoi, index) => (
+    <div 
+      key={tournoi.id}
+      className="group relative h-96 rounded-3xl overflow-hidden shadow-2xl hover:shadow-3xl transition-all duration-500"
+    >
+      
+      <div className="absolute inset-0">
+        <Image
+          src="/images/freefire-bg.jpg"
+          alt={tournoi.jeu}
+          fill
+          className="object-cover group-hover:scale-110 transition-transform duration-700"
+        />
         
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-gray-50 p-4 rounded-xl text-center">
-            <div className="text-2xl font-bold text-[#f8c741]">2</div>
-            <div className="text-sm text-gray-500">Tournois</div>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent"></div>
+      </div>
+
+
+      <div className="relative h-full flex flex-col justify-end p-6 text-white">
+        
+        <div className="absolute top-4 right-4">
+          <span className="px-3 py-1 bg-[#f8c741] text-black font-bold text-xs rounded-full">
+            TOURNOI
+          </span>
+        </div>
+
+
+        <div className="mb-3">
+          <span className="text-sm text-[#f8c741] font-bold uppercase tracking-wider">{tournoi.jeu}</span>
+        </div>
+
+
+        <h3 className="text-2xl font-black mb-2">{tournoi.titre}</h3>
+
+
+        <div className="flex items-center gap-2 mb-4">
+          <Calendar className="w-4 h-4 text-[#f8c741]" />
+          <span className="text-sm">
+            {new Date(tournoi.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+          </span>
+        </div>
+
+
+        <Link 
+          href={`/tournoiDetail/${tournoi.id}`}
+          className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#f8c741] text-black font-bold rounded-full hover:bg-white transition-all w-fit"
+        >
+          <span>S'inscrire</span>
+          <ArrowRight className="w-4 h-4" />
+        </Link>
+      </div>
+    </div>
+  ))}
+</div>
+    
+    </div>
+
+<div className="py-12 md:py-20 relative overflow-hidden bg-gradient-to-r from-[#f8c741]/10 to-[#ff8c42]/10">
+  <div className="container mx-auto px-4 relative">
+    <div className="max-w-6xl mx-auto">
+      <div className="flex flex-col md:grid md:grid-cols-2 gap-8 md:gap-12 items-center">
+        {/* Image - toujours en premier */}
+        <div className="relative w-full h-[250px] sm:h-[300px] md:h-[400px] order-1">
+          <Image
+            src="/images/freefire-character1.png"
+            alt="Gamer"
+            fill
+            className="object-contain md:object-cover"
+            sizes="(max-width: 768px) 100vw, 50vw"
+            priority
+          />
+        </div>
+
+        {/* Texte - toujours en deuxième */}
+        <div className="order-2 text-center md:text-left">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-gray-800 mb-3 md:mb-4">
+            PRÊT À
+            <br />
+            <span className="text-[#f8c741]">DOMINER</span>
+            <br />
+            LE JEU ?
+          </h2>
+          
+          <p className="text-gray-500 mb-4 md:mb-6 text-base sm:text-lg">
+            Rejoins l'arène et prouve ta valeur face aux meilleurs joueurs
+          </p>
+
+          <div className="flex justify-center md:justify-start gap-4 sm:gap-6 mb-6 md:mb-8">
+            <div>
+              <div className="text-xl sm:text-2xl font-black text-[#f8c741]">2</div>
+              <div className="text-xs sm:text-sm text-gray-500">Tournois</div>
+            </div>
+            <div className="w-px h-8 sm:h-10 bg-gray-200"></div>
+            <div>
+              <div className="text-xl sm:text-2xl font-black text-[#f8c741]">8</div>
+              <div className="text-xs sm:text-sm text-gray-500">Jeux</div>
+            </div>
           </div>
-          <div className="bg-gray-50 p-4 rounded-xl text-center">
-            <div className="text-2xl font-bold text-[#f8c741]">24/7</div>
-            <div className="text-sm text-gray-500">Disponibles</div>
-          </div>
-          <div className="bg-gray-50 p-4 rounded-xl text-center">
-            <div className="text-2xl font-bold text-[#f8c741]">8</div>
-            <div className="text-sm text-gray-500">Jeux</div>
-          </div>
-          <div className="bg-gray-50 p-4 rounded-xl text-center">
-            <div className="text-2xl font-bold text-[#f8c741]">24/7</div>
-            <div className="text-sm text-gray-500">Support</div>
+
+          <div className="flex justify-center md:justify-start">
+            <Link 
+              href="/tournoi" 
+              className="group inline-flex items-center gap-2 sm:gap-3 px-6 sm:px-8 py-3 sm:py-4 bg-[#f8c741] text-white rounded-full font-bold text-base sm:text-lg hover:bg-[#e5b53a] transition-all shadow-lg hover:shadow-xl"
+            >
+              <span>Commencer l'aventure</span>
+              <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-2 transition-transform" />
+            </Link>
           </div>
         </div>
       </div>
     </div>
   </div>
 </div>
+
+
+</div>
         
-      </div>
-    </div>
+      
   );
 }
