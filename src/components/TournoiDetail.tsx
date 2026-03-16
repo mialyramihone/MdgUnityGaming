@@ -354,7 +354,7 @@ export default function TournoiDetail({
                       </div>
 
 
-                      <div className="h-1 xs:h-1.5 sm:h-2 bg-gray-200 rounded-full">
+                      {/* <div className="h-1 xs:h-1.5 sm:h-2 bg-gray-200 rounded-full">
                         <div 
                           className="h-full rounded-full transition-all"
                           style={{ 
@@ -362,7 +362,7 @@ export default function TournoiDetail({
                             backgroundColor: '#f8c741'
                           }}
                         ></div>
-                      </div>
+                      </div> */}
                     </>
                   )}
                 </div>
