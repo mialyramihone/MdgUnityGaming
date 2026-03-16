@@ -322,7 +322,7 @@ export default function TournoiDetail({
                 </div>
 
 
-                <div className="space-y-2 xs:space-y-3 sm:space-y-4 mb-3 xs:mb-4 sm:mb-5 md:mb-6">
+                {/* <div className="space-y-2 xs:space-y-3 sm:space-y-4 mb-3 xs:mb-4 sm:mb-5 md:mb-6">
                   <div className="flex justify-between items-center">
                     <span className="text-[10px] xs:text-xs sm:text-sm text-gray-600">
                       {tournoi.id === 2 ? 'Squads' : 'Places'}
@@ -334,7 +334,7 @@ export default function TournoiDetail({
                         tournoi.id === 2 ? inscriptionsCount : tournoi.places
                       )}
                     </span>
-                  </div>
+                  </div> */}
                   
                   {tournoi.id === 1 && (
                     <>
@@ -353,8 +353,7 @@ export default function TournoiDetail({
                         </span>
                       </div>
 
-
-                      {/* <div className="h-1 xs:h-1.5 sm:h-2 bg-gray-200 rounded-full">
+                       <div className="h-1 xs:h-1.5 sm:h-2 bg-gray-200 rounded-full">
                         <div 
                           className="h-full rounded-full transition-all"
                           style={{ 
@@ -362,7 +361,7 @@ export default function TournoiDetail({
                             backgroundColor: '#f8c741'
                           }}
                         ></div>
-                      </div> */}
+                      </div>
                     </>
                   )}
                 </div>
