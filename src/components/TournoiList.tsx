@@ -342,12 +342,12 @@ export default function TournoiList() {
                           </div>
 
                           <div className="flex items-center justify-between mb-2 xs:mb-3">
-                            <div className="flex items-center gap-1 xs:gap-2">
+                            {/* <div className="flex items-center gap-1 xs:gap-2">
                               <Users size={10} className="xs:w-3 xs:h-3 sm:w-4 sm:h-4 text-[#f8c741]" />
                               <span className="text-[10px] xs:text-xs sm:text-sm text-gray-600">
                                 {isIllimite ? `${placesPrises} inscrits` : `${placesPrises}/${tournoi.places}`}
                               </span>
-                            </div>
+                            </div> */}
                             <span className={`text-[8px] xs:text-[10px] px-1.5 xs:px-2 py-0.5 rounded-full ${
                               status === 'ouvert' ? 'bg-green-100 text-green-600' :
                               status === 'bientot' ? 'bg-blue-100 text-blue-600' :
