@@ -88,26 +88,31 @@ export default function AdminDashboard() {
   };
 
  const handleDeleteTeam = async (teamId: number): Promise<void> => {
-    try {
-      const res = await fetch(`/api/teams/${teamId}`, { 
-        method: 'DELETE' 
-      });
-  
-      if (res.ok) {
-        setTeams(prev => prev.filter(t => t.id !== teamId));
-        setShowDeleteConfirm(false);
-        setDeleteConfirm(null);
-        if (teamsPaginees.length === 1 && currentPage > 1) {
-          setCurrentPage(p => p - 1);
-        }
-      } else {
-        const errorData = await res.json().catch(() => ({ error: 'Erreur inconnue' }));
-        alert(`Erreur: ${errorData.error}`);
+  try {
+    const res = await fetch(`/api/teams/${teamId}`, { 
+      method: 'DELETE' 
+    });
+
+    console.log('Status:', res.status);
+    
+    const data = await res.json();
+    console.log('Response:', data);
+
+    if (res.ok) {
+      setTeams(prev => prev.filter(t => t.id !== teamId));
+      setShowDeleteConfirm(false);
+      setDeleteConfirm(null);
+      if (teamsPaginees.length === 1 && currentPage > 1) {
+        setCurrentPage(p => p - 1);
       }
-    } catch {
-      alert('Erreur de connexion');
+    } else {
+      alert(`Erreur: ${data.error || JSON.stringify(data)}`);
     }
-  };
+  } catch (err) {
+    console.error('Erreur fetch:', err);
+    alert(`Erreur: ${err}`);
+  }
+};
 
   const handleExportExcel = (): void => {
     const excelData = teamsFiltrees.map((t: TeamWithDetails) => ({
