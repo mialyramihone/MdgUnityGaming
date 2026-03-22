@@ -87,21 +87,24 @@ export default function AdminDashboard() {
     setShowDetailCard(true);
   };
 
-  const handleDeleteTeam = async (teamId: number): Promise<void> => {
+ const handleDeleteTeam = async (teamId: number): Promise<void> => {
     try {
       const res = await fetch(`/api/teams/${teamId}`, { 
         method: 'DELETE' 
       });
-
+  
       if (res.ok) {
-        await fetchAllData();
-        alert('Équipe supprimée avec succès !');
+        setTeams(prev => prev.filter(t => t.id !== teamId));
+        setShowDeleteConfirm(false);
+        setDeleteConfirm(null);
+        if (teamsPaginees.length === 1 && currentPage > 1) {
+          setCurrentPage(p => p - 1);
+        }
       } else {
-        const errorData = await res.json();
-        alert(`Erreur: ${errorData.error || 'Erreur inconnue'}`);
+        const errorData = await res.json().catch(() => ({ error: 'Erreur inconnue' }));
+        alert(`Erreur: ${errorData.error}`);
       }
     } catch {
-      console.error('Erreur lors de la suppression');
       alert('Erreur de connexion');
     }
   };
