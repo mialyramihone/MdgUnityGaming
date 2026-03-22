@@ -5,19 +5,18 @@ import { eq } from 'drizzle-orm';
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const teamId = parseInt(params.id);
+    const { id } = await params;
+    const teamId = parseInt(id);
 
     if (isNaN(teamId)) {
       return NextResponse.json({ error: 'ID invalide' }, { status: 400 });
     }
 
-    
     await db.delete(teamPlayers).where(eq(teamPlayers.teamId, teamId));
 
-    
     const deleted = await db.delete(teams).where(eq(teams.id, teamId)).returning();
 
     if (deleted.length === 0) {
