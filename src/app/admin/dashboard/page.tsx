@@ -87,16 +87,13 @@ export default function AdminDashboard() {
     setShowDetailCard(true);
   };
 
- const handleDeleteTeam = async (teamId: number): Promise<void> => {
+const handleDeleteTeam = async (teamId: number): Promise<void> => {
   try {
-    const res = await fetch(`/api/teams/${teamId}`, { 
+    const res = await fetch(`/.netlify/functions/delete-team?id=${teamId}`, { 
       method: 'DELETE' 
     });
 
-    console.log('Status:', res.status);
-    
     const data = await res.json();
-    console.log('Response:', data);
 
     if (res.ok) {
       setTeams(prev => prev.filter(t => t.id !== teamId));
@@ -106,14 +103,14 @@ export default function AdminDashboard() {
         setCurrentPage(p => p - 1);
       }
     } else {
-      alert(`Erreur: ${data.error || JSON.stringify(data)}`);
+      alert(`Erreur: ${data.error || 'Erreur inconnue'}`);
     }
   } catch (err) {
     console.error('Erreur fetch:', err);
-    alert(`Erreur: ${err}`);
+    alert(`Erreur de connexion`);
   }
 };
-
+  
   const handleExportExcel = (): void => {
     const excelData = teamsFiltrees.map((t: TeamWithDetails) => ({
       'Code': t.registrationCode,
