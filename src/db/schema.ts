@@ -1,5 +1,12 @@
-import { pgTable, serial, text, integer, timestamp, varchar, boolean } from 'drizzle-orm/pg-core';
-
+import { 
+  pgTable, 
+  serial, 
+  text, 
+  integer, 
+  timestamp, 
+  varchar, 
+  boolean
+} from 'drizzle-orm/pg-core';
 
 export const tournois = pgTable('tournois', {
   id: serial('id').primaryKey(),
@@ -15,7 +22,6 @@ export const tournois = pgTable('tournois', {
   date_creation: timestamp('date_creation').defaultNow(),
 });
 
-
 export const joueuses = pgTable('joueuses', {
   id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
   compte_id: text('compte_id').unique().notNull(),
@@ -26,7 +32,6 @@ export const joueuses = pgTable('joueuses', {
   tournoi_id: integer('tournoi_id').references(() => tournois.id),
   date_inscription: timestamp('date_inscription').defaultNow(),
 });
-
 
 export const teams = pgTable('teams', {
   id: serial('id').primaryKey(),
@@ -44,7 +49,6 @@ export const teams = pgTable('teams', {
   rulesAccepted: boolean('rules_accepted').default(true),
   status: varchar('status', { length: 20 }).default('confirmed'),
   createdAt: timestamp('created_at').defaultNow(),
-  
   player1Id: varchar('player1_id', { length: 50 }),
   player1Name: varchar('player1_name', { length: 100 }),
   player2Id: varchar('player2_id', { length: 50 }),
@@ -59,7 +63,6 @@ export const teams = pgTable('teams', {
   sub2Name: varchar('sub2_name', { length: 100 }),
 });
 
-
 export const teamPlayers = pgTable('team_players', {
   id: serial('id').primaryKey(),
   teamId: integer('team_id').notNull().references(() => teams.id),
@@ -70,6 +73,41 @@ export const teamPlayers = pgTable('team_players', {
   createdAt: timestamp('created_at').defaultNow(),
 });
 
+// Tables pour la gestion des points
+export const matches = pgTable('matches', {
+  id: serial('id').primaryKey(),
+  matchNumber: integer('match_number').notNull(),
+  tournamentId: integer('tournament_id').notNull().references(() => tournois.id),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const maps = pgTable('maps', {
+  id: serial('id').primaryKey(),
+  matchId: integer('match_id').notNull().references(() => matches.id, { onDelete: 'cascade' }),
+  mapNumber: integer('map_number').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const mapResults = pgTable('map_results', {
+  id: serial('id').primaryKey(),
+  mapId: integer('map_id').notNull().references(() => maps.id, { onDelete: 'cascade' }),
+  teamId: integer('team_id').notNull().references(() => teams.id),
+  position: integer('position').notNull(),
+  kills: integer('kills').notNull().default(0),
+  booyah: boolean('booyah').default(false),
+  points: integer('points').notNull().default(0),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const rankings = pgTable('rankings', {
+  id: serial('id').primaryKey(),
+  teamId: integer('team_id').notNull().references(() => teams.id),
+  totalPoints: integer('total_points').notNull().default(0),
+  totalKills: integer('total_kills').notNull().default(0),
+  totalBooyahs: integer('total_booyahs').notNull().default(0),
+  matchesPlayed: integer('matches_played').notNull().default(0),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
 
 // Types
 export type Tournoi = typeof tournois.$inferSelect;
@@ -78,3 +116,13 @@ export type Joueuse = typeof joueuses.$inferSelect;
 export type NewJoueuse = typeof joueuses.$inferInsert;
 export type Team = typeof teams.$inferSelect;
 export type NewTeam = typeof teams.$inferInsert;
+export type TeamPlayer = typeof teamPlayers.$inferSelect;
+export type NewTeamPlayer = typeof teamPlayers.$inferInsert;
+export type Match = typeof matches.$inferSelect;
+export type NewMatch = typeof matches.$inferInsert;
+export type Map = typeof maps.$inferSelect;
+export type NewMap = typeof maps.$inferInsert;
+export type MapResult = typeof mapResults.$inferSelect;
+export type NewMapResult = typeof mapResults.$inferInsert;
+export type Ranking = typeof rankings.$inferSelect;
+export type NewRanking = typeof rankings.$inferInsert;

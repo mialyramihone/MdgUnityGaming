@@ -90,7 +90,7 @@ export default function TournoiList() {
 
   const countTournoi1Inscriptions = async () => {
     try {
-      const response = await fetch('/.netlify/functions/count-teams?tournamentId=1');
+      const response = await fetch('/api/count-teams?tournamentId=1');
       const data = await response.json();
       return data.count || 0;
     } catch (error) {
@@ -103,7 +103,7 @@ export default function TournoiList() {
     const fetchInscriptionsCount = async () => {
       try {
         const count1 = await countTournoi1Inscriptions();
-        const teamsRes = await fetch('/.netlify/functions/count-teams?tournamentId=2');
+        const teamsRes = await fetch('/api/count-teams?tournamentId=2');
         const teamsData = await teamsRes.json();
         
         const count: {[key: number]: number} = {};
@@ -187,15 +187,6 @@ export default function TournoiList() {
               Tournoi
             </button>
             <button
-              onClick={() => setActiveTab('classement')}
-              className={`py-2 xs:py-3 sm:py-4 px-1 xs:px-2 font-medium border-b-2 transition-colors whitespace-nowrap text-xs xs:text-sm sm:text-base ${
-                activeTab === 'classement' ? 'border-[#f8c741]' : 'border-transparent'
-              }`}
-              style={{ color: activeTab === 'classement' ? '#292929' : '#826d4a' }}
-            >
-              Classement
-            </button>
-            <button
               onClick={() => setActiveTab('resultat')}
               className={`py-2 xs:py-3 sm:py-4 px-1 xs:px-2 font-medium border-b-2 transition-colors whitespace-nowrap text-xs xs:text-sm sm:text-base ${
                 activeTab === 'resultat' ? 'border-[#f8c741]' : 'border-transparent'
@@ -203,6 +194,15 @@ export default function TournoiList() {
               style={{ color: activeTab === 'resultat' ? '#292929' : '#826d4a' }}
             >
               Résultat
+            </button>
+            <button
+              onClick={() => setActiveTab('classement')}
+              className={`py-2 xs:py-3 sm:py-4 px-1 xs:px-2 font-medium border-b-2 transition-colors whitespace-nowrap text-xs xs:text-sm sm:text-base ${
+                activeTab === 'classement' ? 'border-[#f8c741]' : 'border-transparent'
+              }`}
+              style={{ color: activeTab === 'classement' ? '#292929' : '#826d4a' }}
+            >
+              Classement
             </button>
           </div>
         </div>
@@ -433,8 +433,8 @@ export default function TournoiList() {
           </div>
         )}
 
-        {activeTab === 'classement' && <Classement tournois={tournois} />}
-        {activeTab === 'resultat' && <Resultat tournois={tournois} />}
+        {activeTab === 'resultat' && <Resultat />}
+        {activeTab === 'classement' && <Classement />}
       </div>
 
       {/* Modal d'inscription */}

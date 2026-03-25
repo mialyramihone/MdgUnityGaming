@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Calendar, Clock, Gamepad2, Users, ArrowRight, Sun, Trophy, X } from 'lucide-react';
 import Image from 'next/image';
 
@@ -18,7 +18,6 @@ interface Tournoi {
 }
 
 export default function Accueil() {
-  const [showAd, setShowAd] = useState(true);
   const [tournoisEnVedette] = useState<Tournoi[]>([
     {
       id: 2,
@@ -33,72 +32,8 @@ export default function Accueil() {
     }
   ]);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowAd(true);
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, []);
-
-  const closeAd = () => {
-    setShowAd(false);
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-amber-50 via-orange-50 to-yellow-50">
-      {/* Popup publicitaire responsive */}
-      {showAd && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-3 xs:px-4">
-          <div 
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-            onClick={closeAd}
-          ></div>
-          
-          <div className="relative w-full max-w-[280px] xs:max-w-[320px] sm:max-w-[350px] md:max-w-[384px] animate-fade-in">
-            <button
-              onClick={closeAd}
-              className="absolute -top-2 -right-2 xs:-top-3 xs:-right-3 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full p-1 xs:p-2 hover:bg-white/30 transition-colors z-10"
-            >
-              <X className="w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5 text-white" />
-            </button>
-
-            <div className="relative">
-              <div className="relative h-56 xs:h-64 sm:h-72 md:h-80 w-full">
-                <Image
-                  src="/images/freefire-character.png" 
-                  alt="Free Fire Character"
-                  fill
-                  className="object-contain"
-                  sizes="(max-width: 385px) 280px, (max-width: 640px) 320px, 384px"
-                />
-              </div>
-
-              <div className="absolute top-16 xs:top-20 sm:top-24 md:top-28 left-0 right-0 text-center">
-                <p className="text-white text-[10px] xs:text-xs sm:text-sm font-medium mb-0.5 xs:mb-1 drop-shadow-lg">
-                  TOURNOI
-                </p>
-                <p className="text-white text-2xl xs:text-3xl sm:text-4xl md:text-5xl font-black mb-1 xs:mb-2 drop-shadow-lg">
-                  FREE FIRE
-                </p>
-                <p className="text-[#f8c741] text-lg xs:text-xl sm:text-2xl md:text-3xl font-bold drop-shadow-lg">
-                  23 MARS 2026
-                </p>
-              </div>
-
-              <div className="absolute bottom-4 xs:bottom-6 sm:bottom-8 left-0 right-0 text-center">
-                <Link
-                  href="/tournoi/"
-                  onClick={closeAd}
-                  className="inline-block px-4 xs:px-6 sm:px-8 py-1 xs:py-1.5 sm:py-2 bg-white/10 backdrop-blur-sm text-white rounded-full font-bold text-[10px] xs:text-xs sm:text-sm border border-white/30 hover:bg-white/20 transition-all"
-                >
-                  S'inscrire maintenant
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Hero section responsive */}
       <div className="relative overflow-hidden bg-gradient-to-br from-[#ffc629] to-[#ffb909]">
         <div className="relative container mx-auto px-3 xs:px-4 py-12 xs:py-16 sm:py-20 md:py-24 lg:py-32">
@@ -329,6 +264,20 @@ export default function Accueil() {
           </div>
         </div>
       </div>
+
+      <style jsx>{`
+        @keyframes scroll {
+          0% {
+            transform: translateX(0);
+          }
+          100% {
+            transform: translateX(-50%);
+          }
+        }
+        .animate-scroll {
+          animation: scroll 20s linear infinite;
+        }
+      `}</style>
     </div>
   );
 }
