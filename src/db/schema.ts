@@ -73,10 +73,10 @@ export const teamPlayers = pgTable('team_players', {
   createdAt: timestamp('created_at').defaultNow(),
 });
 
-// Tables pour la gestion des points
 export const matches = pgTable('matches', {
   id: serial('id').primaryKey(),
   matchNumber: integer('match_number').notNull(),
+  matchGroup: varchar('match_group', { length: 1 }).notNull(), 
   tournamentId: integer('tournament_id').notNull().references(() => tournois.id),
   createdAt: timestamp('created_at').defaultNow(),
 });

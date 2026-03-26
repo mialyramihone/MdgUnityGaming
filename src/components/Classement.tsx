@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Trophy, Medal, Award, ChevronDown, Gamepad2, Crown, Swords } from 'lucide-react';
+import { Trophy, Medal, Award, ChevronDown, Gamepad2, Crown, Swords, Layers } from 'lucide-react';
 
 interface Ranking {
   id: number;
@@ -18,16 +18,23 @@ export default function Classement() {
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'general' | 'kills' | 'booyah'>('general');
   const [filterMatch, setFilterMatch] = useState<number>(0);
+  const [filterGroup, setFilterGroup] = useState<string>('all');
   const [showFilters, setShowFilters] = useState(false);
-
-  useEffect(() => {
-    fetchRankings();
-  }, [filterMatch]);
 
   const fetchRankings = async () => {
     setLoading(true);
     try {
-      const url = filterMatch > 0 ? `/api/rankings?match=${filterMatch}` : '/api/rankings';
+      const params = new URLSearchParams();
+      if (filterMatch > 0) {
+        params.append('match', filterMatch.toString());
+      }
+      if (filterGroup !== 'all') {
+        params.append('group', filterGroup);
+      }
+      
+      const url = `/api/rankings${params.toString() ? `?${params.toString()}` : ''}`;
+      console.log('Fetching rankings from:', url);
+      
       const res = await fetch(url);
       const data = await res.json();
       setRankings(Array.isArray(data) ? data : []);
@@ -38,6 +45,10 @@ export default function Classement() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchRankings();
+  }, [filterMatch, filterGroup]);
 
   const getMedalIcon = (rank: number) => {
     switch(rank) {
@@ -53,6 +64,13 @@ export default function Classement() {
     if (viewMode === 'booyah') return b.totalBooyahs - a.totalBooyahs;
     return b.totalPoints - a.totalPoints;
   });
+
+  const groupColors: Record<string, string> = {
+    'A': 'bg-red-100 text-red-600',
+    'B': 'bg-blue-100 text-blue-600',
+    'C': 'bg-green-100 text-green-600',
+    'D': 'bg-purple-100 text-purple-600'
+  };
 
   if (loading) {
     return (
@@ -72,7 +90,10 @@ export default function Classement() {
             The Tournament Saison 4
           </h2>
           <p className="text-xs xs:text-sm text-gray-500">
-            Free Fire • Classement général
+            Free Fire • Classement 
+            {filterGroup !== 'all' && ` Groupe ${filterGroup}`}
+            {filterMatch > 0 && ` - Match ${filterMatch}`}
+            {filterGroup === 'all' && filterMatch === 0 && ' général'}
           </p>
         </div>
 
@@ -86,12 +107,35 @@ export default function Classement() {
           </button>
 
           <div className={`${showFilters ? 'flex' : 'hidden'} lg:flex flex-col sm:flex-row lg:items-center gap-2 sm:gap-3`}>
-            <div className="flex rounded-lg border-2 border-[#f8c741] overflow-hidden w-full sm:w-auto">
+            {/* Filtre groupe */}
+            <div className="flex rounded-lg border-2 border-[#f8c741] overflow-hidden">
+              <button
+                onClick={() => setFilterGroup('all')}
+                className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                  filterGroup === 'all' ? 'bg-[#f8c741] text-[#292929]' : 'bg-white text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                Tous
+              </button>
+              {['A', 'B', 'C', 'D'].map(group => (
+                <button
+                  key={group}
+                  onClick={() => setFilterGroup(group)}
+                  className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                    filterGroup === group ? 'bg-[#f8c741] text-[#292929]' : 'bg-white text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  Groupe {group}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex rounded-lg border-2 border-[#f8c741] overflow-hidden">
               {(['general', 'kills', 'booyah'] as const).map((mode) => (
                 <button
                   key={mode}
                   onClick={() => setViewMode(mode)}
-                  className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium transition-colors ${
+                  className={`px-3 py-1.5 text-xs font-medium transition-colors ${
                     viewMode === mode ? 'bg-[#f8c741] text-[#292929]' : 'bg-white text-gray-600 hover:bg-gray-50'
                   }`}
                 >
@@ -126,7 +170,12 @@ export default function Classement() {
       {sortedRankings.length === 0 ? (
         <div className="text-center py-12 px-4">
           <Gamepad2 className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-          <p className="text-gray-500">Aucun classement disponible</p>
+          <p className="text-gray-500">
+            {filterGroup !== 'all' && filterMatch === 0 && `Aucune donnée pour le groupe ${filterGroup}`}
+            {filterGroup === 'all' && filterMatch > 0 && `Aucune donnée pour le match ${filterMatch}`}
+            {filterGroup !== 'all' && filterMatch > 0 && `Aucune donnée pour le groupe ${filterGroup} - match ${filterMatch}`}
+            {filterGroup === 'all' && filterMatch === 0 && 'Aucun classement disponible'}
+          </p>
           <p className="text-xs text-gray-400 mt-1">Ajoutez des points dans l'onglet "Résultats"</p>
         </div>
       ) : (
@@ -136,6 +185,7 @@ export default function Classement() {
               <Trophy className="w-4 h-4 text-[#f8c741]" />
               Classement {viewMode === 'general' ? 'par points' : viewMode === 'kills' ? 'par kills' : 'par booyahs'}
               {filterMatch > 0 && <span className="ml-2 text-xs px-2 py-0.5 bg-[#f8c741]/20 text-[#f8c741] rounded-full">Match {filterMatch}</span>}
+              {filterGroup !== 'all' && <span className="ml-2 text-xs px-2 py-0.5 bg-blue-100 text-blue-600 rounded-full">Groupe {filterGroup}</span>}
             </h3>
           </div>
           <div className="overflow-x-auto">
@@ -196,7 +246,7 @@ export default function Classement() {
         <div className="flex items-center gap-1"><Award className="w-3 h-3 text-amber-600" /> 3ème</div>
         <div className="flex items-center gap-1"><Swords className="w-3 h-3 text-blue-500" /> Kills</div>
         <div className="flex items-center gap-1"><Crown className="w-3 h-3 text-green-500" /> Booyah</div>
-        <div className="flex items-center gap-1"><Gamepad2 className="w-3 h-3 text-gray-500" /> Free Fire</div>
+        <div className="flex items-center gap-1"><Layers className="w-3 h-3 text-purple-500" /> Groupes</div>
       </div>
 
       <style jsx>{`

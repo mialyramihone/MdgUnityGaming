@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, JSX } from 'react';
-import { Trophy, Medal, Award, ChevronDown, Gamepad2 } from 'lucide-react';
+import { Trophy, Medal, Award, ChevronDown, Gamepad2, Layers } from 'lucide-react';
 
 interface TeamRanking {
   id: number;
@@ -9,6 +9,7 @@ interface TeamRanking {
   team_name?: string;
   teamTag?: string;
   team_tag?: string;
+  group?: string;
   totalPoints: number;
   total_points?: number;
   totalKills: number;
@@ -23,15 +24,26 @@ export default function RankingManager() {
   const [rankings, setRankings] = useState<TeamRanking[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [viewMode, setViewMode] = useState<'general' | 'kills' | 'booyah'>('general');
-  const [filterMatch, setFilterMatch] = useState<number>(0); // 0 = tous
+  const [filterMatch, setFilterMatch] = useState<number>(0);
+  const [filterGroup, setFilterGroup] = useState<string>('all');
   const [showFilters, setShowFilters] = useState(false);
 
-  useEffect(() => { fetchRankings(); }, []);
-
+  
   const fetchRankings = async (): Promise<void> => {
     setLoading(true);
     try {
-      const url = filterMatch > 0 ? `/api/rankings?match=${filterMatch}` : '/api/rankings';
+      
+      const params = new URLSearchParams();
+      if (filterMatch > 0) {
+        params.append('match', filterMatch.toString());
+      }
+      if (filterGroup !== 'all') {
+        params.append('group', filterGroup);
+      }
+      
+      const url = `/api/rankings${params.toString() ? `?${params.toString()}` : ''}`;
+      console.log('Fetching rankings from:', url); 
+      
       const res = await fetch(url);
       const data = await res.json();
       setRankings(Array.isArray(data) ? data : []);
@@ -43,7 +55,10 @@ export default function RankingManager() {
     }
   };
 
-  useEffect(() => { fetchRankings(); }, [filterMatch]);
+  
+  useEffect(() => {
+    fetchRankings();
+  }, [filterMatch, filterGroup]);
 
   const getMedalIcon = (rank: number): JSX.Element => {
     switch (rank) {
@@ -53,6 +68,7 @@ export default function RankingManager() {
       default: return <div className="w-6 h-6 xs:w-7 xs:h-7 sm:w-8 sm:h-8 rounded-full bg-gray-100 flex items-center justify-center font-bold text-gray-500 text-xs xs:text-sm">{rank}</div>;
     }
   };
+  
 
   const sorted = [...rankings].sort((a, b) => {
     if (viewMode === 'kills') return (b.totalKills || b.total_kills || 0) - (a.totalKills || a.total_kills || 0);
@@ -68,14 +84,27 @@ export default function RankingManager() {
     );
   }
 
+  const groupColors: Record<string, string> = {
+    'A': 'bg-red-100 text-red-600',
+    'B': 'bg-blue-100 text-blue-600',
+    'C': 'bg-green-100 text-green-600',
+    'D': 'bg-purple-100 text-purple-600'
+  };
+
   return (
     <div className="space-y-4 xs:space-y-5 sm:space-y-6">
 
       {/* Header */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 xs:gap-4 px-2 xs:px-3 sm:px-4">
         <div>
-          <h2 className="text-lg xs:text-xl sm:text-2xl font-bold text-gray-800">Classement Général</h2>
-          <p className="text-xs xs:text-sm text-gray-500">Classement par points du tournoi</p>
+          <h2 className="text-lg xs:text-xl sm:text-2xl font-bold text-gray-800">
+            Classement {filterGroup !== 'all' ? `Groupe ${filterGroup}` : 'Général'}
+          </h2>
+          <p className="text-xs xs:text-sm text-gray-500">
+            Classement par points du tournoi
+            {filterGroup !== 'all' && ` - Groupe ${filterGroup}`}
+            {filterMatch > 0 && ` - Match ${filterMatch}`}
+          </p>
         </div>
 
         <div className="flex flex-col w-full lg:w-auto gap-2">
@@ -88,17 +117,40 @@ export default function RankingManager() {
           </button>
 
           <div className={`${showFilters ? 'flex' : 'hidden'} lg:flex flex-col sm:flex-row lg:items-center gap-2 sm:gap-3`}>
+            {/* Filtre groupe */}
+            <div className="flex rounded-lg border-2 border-[#f8c741] overflow-hidden">
+              <button
+                onClick={() => setFilterGroup('all')}
+                className={`px-2 xs:px-3 py-1.5 text-[10px] xs:text-xs font-medium transition-colors ${
+                  filterGroup === 'all' ? 'bg-[#f8c741] text-[#292929]' : 'bg-white text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                Tous
+              </button>
+              {['A', 'B', 'C', 'D'].map(group => (
+                <button
+                  key={group}
+                  onClick={() => setFilterGroup(group)}
+                  className={`px-2 xs:px-3 py-1.5 text-[10px] xs:text-xs font-medium transition-colors ${
+                    filterGroup === group ? 'bg-[#f8c741] text-[#292929]' : 'bg-white text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  Groupe {group}
+                </button>
+              ))}
+            </div>
+
             {/* Toggle vue */}
-            <div className="flex rounded-lg xs:rounded-xl border-2 border-[#f8c741] overflow-hidden w-full sm:w-auto">
+            <div className="flex rounded-lg border-2 border-[#f8c741] overflow-hidden">
               {(['general', 'kills', 'booyah'] as const).map((mode) => (
                 <button
                   key={mode}
                   onClick={() => setViewMode(mode)}
-                  className={`flex-1 sm:flex-none px-2 xs:px-3 sm:px-4 py-1.5 xs:py-2 text-[10px] xs:text-xs sm:text-sm font-medium transition-colors ${
+                  className={`px-2 xs:px-3 py-1.5 text-[10px] xs:text-xs font-medium transition-colors ${
                     viewMode === mode ? 'bg-[#f8c741] text-[#292929]' : 'bg-white text-gray-600 hover:bg-gray-50'
                   }`}
                 >
-                  {mode === 'general' ? 'Général' : mode === 'kills' ? 'Kills' : 'Booyah 🐔'}
+                  {mode === 'general' ? 'Points' : mode === 'kills' ? 'Kills' : 'Booyah'}
                 </button>
               ))}
             </div>
@@ -129,7 +181,12 @@ export default function RankingManager() {
       {sorted.length === 0 && (
         <div className="text-center py-8 xs:py-10 sm:py-12 px-4">
           <Gamepad2 className="w-12 h-12 xs:w-14 xs:h-14 sm:w-16 sm:h-16 mx-auto mb-3 xs:mb-4 text-gray-300" />
-          <p className="text-sm xs:text-base text-gray-500">Aucun classement disponible</p>
+          <p className="text-sm xs:text-base text-gray-500">
+            {filterGroup !== 'all' && filterMatch === 0 && `Aucune donnée pour le groupe ${filterGroup}`}
+            {filterGroup === 'all' && filterMatch > 0 && `Aucune donnée pour le match ${filterMatch}`}
+            {filterGroup !== 'all' && filterMatch > 0 && `Aucune donnée pour le groupe ${filterGroup} - match ${filterMatch}`}
+            {filterGroup === 'all' && filterMatch === 0 && 'Aucun classement disponible'}
+          </p>
           <p className="text-xs text-gray-400 mt-1">Ajoutez des points dans l'onglet "Points"</p>
         </div>
       )}
@@ -141,8 +198,9 @@ export default function RankingManager() {
             <h3 className="text-sm xs:text-base sm:text-lg font-semibold text-gray-800">
               {viewMode === 'general' && 'Classement général'}
               {viewMode === 'kills' && 'Classement par kills'}
-              {viewMode === 'booyah' && 'Classement par Booyah 🐔'}
+              {viewMode === 'booyah' && 'Classement par Booyah'}
               {filterMatch > 0 && <span className="ml-2 text-[10px] xs:text-xs px-2 py-0.5 bg-[#f8c741]/20 text-[#f8c741] rounded-full">Match {filterMatch}</span>}
+              {filterGroup !== 'all' && <span className="ml-2 text-[10px] xs:text-xs px-2 py-0.5 bg-blue-100 text-blue-600 rounded-full">Groupe {filterGroup}</span>}
             </h3>
             <span className="text-[10px] xs:text-xs px-2 xs:px-3 py-1 bg-[#f8c741] rounded-full text-[#292929]">
               {sorted.length} équipes
@@ -153,16 +211,17 @@ export default function RankingManager() {
             <table className="w-full min-w-[400px] xs:min-w-[500px] sm:min-w-[600px]">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-2 xs:px-3 sm:px-4 md:px-6 py-2 xs:py-3 sm:py-4 text-left text-[8px] xs:text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Rang</th>
-                  <th className="px-2 xs:px-3 sm:px-4 md:px-6 py-2 xs:py-3 sm:py-4 text-left text-[8px] xs:text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Équipe</th>
-                  <th className="hidden sm:table-cell px-2 xs:px-3 sm:px-4 md:px-6 py-2 xs:py-3 sm:py-4 text-center text-[8px] xs:text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Matchs</th>
-                  <th className="px-2 xs:px-3 sm:px-4 md:px-6 py-2 xs:py-3 sm:py-4 text-center text-[8px] xs:text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {viewMode === 'general' ? 'Points' : viewMode === 'kills' ? 'Kills' : 'Booyah 🐔'}
+                  <th className="px-2 xs:px-3 sm:px-4 md:px-6 py-2 xs:py-3 sm:py-4 text-left text-[8px] xs:text-[10px] sm:text-xs font-medium text-gray-500 uppercase">Rang</th>
+                  <th className="px-2 xs:px-3 sm:px-4 md:px-6 py-2 xs:py-3 sm:py-4 text-left text-[8px] xs:text-[10px] sm:text-xs font-medium text-gray-500 uppercase">Équipe</th>
+                  <th className="px-2 xs:px-3 sm:px-4 md:px-6 py-2 xs:py-3 sm:py-4 text-center text-[8px] xs:text-[10px] sm:text-xs font-medium text-gray-500 uppercase">Groupe</th>
+                  <th className="hidden sm:table-cell px-2 xs:px-3 sm:px-4 md:px-6 py-2 xs:py-3 sm:py-4 text-center text-[8px] xs:text-[10px] sm:text-xs font-medium text-gray-500 uppercase">Matchs</th>
+                  <th className="px-2 xs:px-3 sm:px-4 md:px-6 py-2 xs:py-3 sm:py-4 text-center text-[8px] xs:text-[10px] sm:text-xs font-medium text-gray-500 uppercase">
+                    {viewMode === 'general' ? 'Points' : viewMode === 'kills' ? 'Kills' : 'Booyah'}
                   </th>
                   {viewMode === 'general' && (
                     <>
-                      <th className="hidden sm:table-cell px-2 xs:px-3 sm:px-4 md:px-6 py-2 xs:py-3 sm:py-4 text-center text-[8px] xs:text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Kills</th>
-                      <th className="hidden md:table-cell px-2 xs:px-3 sm:px-4 md:px-6 py-2 xs:py-3 sm:py-4 text-center text-[8px] xs:text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">Booyah</th>
+                      <th className="hidden sm:table-cell px-2 xs:px-3 sm:px-4 md:px-6 py-2 xs:py-3 sm:py-4 text-center text-[8px] xs:text-[10px] sm:text-xs font-medium text-gray-500 uppercase">Kills</th>
+                      <th className="hidden md:table-cell px-2 xs:px-3 sm:px-4 md:px-6 py-2 xs:py-3 sm:py-4 text-center text-[8px] xs:text-[10px] sm:text-xs font-medium text-gray-500 uppercase">Booyah</th>
                     </>
                   )}
                 </tr>
@@ -182,6 +241,13 @@ export default function RankingManager() {
                         <p className="text-[8px] xs:text-[10px] text-gray-500">{team.teamTag || team.team_tag}</p>
                       </div>
                     </td>
+                    <td className="px-2 xs:px-3 sm:px-4 md:px-6 py-2 xs:py-3 sm:py-4 text-center">
+                      {team.group && (
+                        <span className={`inline-block px-2 py-1 rounded-full text-[10px] xs:text-xs font-medium ${groupColors[team.group]}`}>
+                          {team.group}
+                        </span>
+                      )}
+                    </td>
                     <td className="hidden sm:table-cell px-2 xs:px-3 sm:px-4 md:px-6 py-2 xs:py-3 sm:py-4 text-center text-[10px] xs:text-xs text-gray-600">
                       {team.matchesPlayed || team.matches_played || 0}
                     </td>
@@ -200,7 +266,7 @@ export default function RankingManager() {
                           {team.totalKills || team.total_kills || 0}
                         </td>
                         <td className="hidden md:table-cell px-2 xs:px-3 sm:px-4 md:px-6 py-2 xs:py-3 sm:py-4 text-center text-[10px] xs:text-xs text-green-600 font-medium">
-                          {team.totalBooyahs || team.total_booyahs || 0} 🐔
+                          {team.totalBooyahs || team.total_booyahs || 0}
                         </td>
                       </>
                     )}

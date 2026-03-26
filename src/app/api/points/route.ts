@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
-import { recalculateRankings } from '@/lib/ranking';
 
 const sql = neon(process.env.DATABASE_URL!);
 
@@ -10,31 +9,51 @@ const POSITION_POINTS: Record<number, number> = {
   11: 0, 12: 0
 };
 
-const MAPS = {
+const MAPS: Record<string, number> = {
   'Bermuda': 1, 'Purgatory': 2, 'Kalahari': 3,
   'NeXTerra': 4, 'Solara': 5, 'Alpine': 6
 };
 
 export async function GET() {
   try {
-    const teams = await sql`SELECT * FROM teams`;
+    
+    const teams = await sql`
+      SELECT 
+        id, 
+        team_name as "teamName", 
+        team_tag as "teamTag"
+      FROM teams 
+      WHERE tournament_id = 2 
+      ORDER BY team_name
+    `;
+    
     const rankings = await sql`
       SELECT r.*, t.team_name as "teamName", t.team_tag as "teamTag"
       FROM rankings r
       JOIN teams t ON r.team_id = t.id
+      WHERE t.tournament_id = 2
       ORDER BY r.total_points DESC, r.total_booyahs DESC, r.total_kills DESC
     `;
+    
     const matchResults = await sql`
       SELECT 
-        mr.id, mr.team_id, mr.position, mr.kills, mr.booyah, mr.points, mr.created_at as "createdAt",
+        mr.id, 
+        mr.team_id, 
+        mr.position, 
+        mr.kills, 
+        mr.booyah, 
+        mr.points, 
+        mr.created_at as "createdAt",
         t.team_name as "teamName",
         m.match_number as "matchNumber",
+        m.match_group as "matchGroup",
         mp.map_number as "mapNumber"
       FROM map_results mr
       JOIN teams t ON mr.team_id = t.id
       JOIN maps mp ON mr.map_id = mp.id
       JOIN matches m ON mp.match_id = m.id
-      ORDER BY m.match_number, mp.map_number, mr.position
+      WHERE m.tournament_id = 2
+      ORDER BY m.match_group, m.match_number, mp.map_number, mr.position
     `;
     
     const formattedResults = matchResults.map((r: any) => ({
@@ -42,6 +61,7 @@ export async function GET() {
       teamId: r.team_id,
       teamName: r.teamName,
       matchNumber: r.matchNumber,
+      matchGroup: r.matchGroup,
       mapNumber: r.mapNumber,
       mapName: Object.keys(MAPS).find(k => MAPS[k as keyof typeof MAPS] === r.mapNumber) || 'Unknown',
       position: r.position,
@@ -51,7 +71,11 @@ export async function GET() {
       createdAt: r.createdAt
     }));
     
-    return NextResponse.json({ teams, rankings, matchResults: formattedResults });
+    return NextResponse.json({ 
+      teams, 
+      rankings, 
+      matchResults: formattedResults 
+    });
   } catch (error) {
     console.error('Erreur GET points:', error);
     return NextResponse.json({ teams: [], rankings: [], matchResults: [] });
@@ -61,7 +85,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { teamId, matchNumber, mapName, position, kills } = body;
+    const { teamId, matchNumber, matchGroup, mapName, position, kills } = body;
     const booyah = position === 1;
     
     const positionPoints = POSITION_POINTS[position] || 0;
@@ -72,21 +96,39 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Map non reconnue' }, { status: 400 });
     }
     
-    let matchResult = await sql`SELECT id FROM matches WHERE match_number = ${matchNumber} LIMIT 1`;
+    let matchResult = await sql`
+      SELECT id FROM matches 
+      WHERE match_number = ${matchNumber} 
+      AND match_group = ${matchGroup}
+      AND tournament_id = 2
+      LIMIT 1
+    `;
     let matchId: number;
     
     if (matchResult.length === 0) {
-      const newMatch = await sql`INSERT INTO matches (match_number, tournament_id) VALUES (${matchNumber}, 2) RETURNING id`;
+      const newMatch = await sql`
+        INSERT INTO matches (match_number, match_group, tournament_id) 
+        VALUES (${matchNumber}, ${matchGroup}, 2) 
+        RETURNING id
+      `;
       matchId = newMatch[0].id;
     } else {
       matchId = matchResult[0].id;
     }
     
-    let mapResult = await sql`SELECT id FROM maps WHERE match_id = ${matchId} AND map_number = ${mapNumberValue} LIMIT 1`;
+    let mapResult = await sql`
+      SELECT id FROM maps 
+      WHERE match_id = ${matchId} AND map_number = ${mapNumberValue} 
+      LIMIT 1
+    `;
     let mapId: number;
     
     if (mapResult.length === 0) {
-      const newMap = await sql`INSERT INTO maps (match_id, map_number) VALUES (${matchId}, ${mapNumberValue}) RETURNING id`;
+      const newMap = await sql`
+        INSERT INTO maps (match_id, map_number) 
+        VALUES (${matchId}, ${mapNumberValue}) 
+        RETURNING id
+      `;
       mapId = newMap[0].id;
     } else {
       mapId = mapResult[0].id;
@@ -97,7 +139,9 @@ export async function POST(request: Request) {
       VALUES (${mapId}, ${teamId}, ${position}, ${kills}, ${booyah}, ${totalPoints})
     `;
     
-    const existingRanking = await sql`SELECT * FROM rankings WHERE team_id = ${teamId} LIMIT 1`;
+    const existingRanking = await sql`
+      SELECT * FROM rankings WHERE team_id = ${teamId} LIMIT 1
+    `;
     
     if (existingRanking.length === 0) {
       await sql`

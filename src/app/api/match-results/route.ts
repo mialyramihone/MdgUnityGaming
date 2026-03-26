@@ -6,12 +6,11 @@ import { eq, desc, and } from 'drizzle-orm';
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const matchId = searchParams.get('matchId');
+    const matchNumber = searchParams.get('match');
+    const matchGroup = searchParams.get('group');
     
-    let results: any[];
-    
-    if (matchId && parseInt(matchId) > 0) {
-      results = await db
+    if (matchNumber && parseInt(matchNumber) > 0 && matchGroup && matchGroup !== 'all') {
+      const results = await db
         .select({
           id: mapResults.id,
           teamId: mapResults.teamId,
@@ -22,35 +21,148 @@ export async function GET(request: Request) {
           points: mapResults.points,
           createdAt: mapResults.createdAt,
           matchNumber: matches.matchNumber,
+          matchGroup: matches.matchGroup,
           mapNumber: maps.mapNumber,
         })
         .from(mapResults)
         .leftJoin(teams, eq(mapResults.teamId, teams.id))
         .leftJoin(maps, eq(mapResults.mapId, maps.id))
         .leftJoin(matches, eq(maps.matchId, matches.id))
-        .where(eq(matches.matchNumber, parseInt(matchId)))
-        .orderBy(maps.mapNumber, mapResults.position);
-    } else {
-      results = await db
-        .select({
-          id: mapResults.id,
-          teamId: mapResults.teamId,
-          teamName: teams.teamName,
-          position: mapResults.position,
-          kills: mapResults.kills,
-          booyah: mapResults.booyah,
-          points: mapResults.points,
-          createdAt: mapResults.createdAt,
-          matchNumber: matches.matchNumber,
-          mapNumber: maps.mapNumber,
-        })
-        .from(mapResults)
-        .leftJoin(teams, eq(mapResults.teamId, teams.id))
-        .leftJoin(maps, eq(mapResults.mapId, maps.id))
-        .leftJoin(matches, eq(maps.matchId, matches.id))
-        .orderBy(desc(matches.matchNumber), desc(maps.mapNumber), desc(mapResults.createdAt))
-        .limit(100);
+        .where(and(
+          eq(matches.matchNumber, parseInt(matchNumber)),
+          eq(matches.matchGroup, matchGroup)
+        ))
+        .orderBy(matches.matchNumber, maps.mapNumber, mapResults.position);
+      
+      const mapNames: Record<number, string> = {
+        1: 'Bermuda', 2: 'Purgatory', 3: 'Kalahari',
+        4: 'NeXTerra', 5: 'Solara', 6: 'Alpine'
+      };
+      
+      const formattedResults = results.map(r => ({
+        id: r.id,
+        teamId: r.teamId,
+        teamName: r.teamName,
+        matchNumber: r.matchNumber,
+        matchGroup: r.matchGroup,
+        mapName: r.mapNumber ? mapNames[r.mapNumber] || 'Bermuda' : 'Bermuda',
+        position: r.position,
+        kills: r.kills,
+        booyah: r.booyah,
+        points: r.points,
+        createdAt: r.createdAt,
+      }));
+      
+      return NextResponse.json(formattedResults);
     }
+    
+    if (matchNumber && parseInt(matchNumber) > 0) {
+      const results = await db
+        .select({
+          id: mapResults.id,
+          teamId: mapResults.teamId,
+          teamName: teams.teamName,
+          position: mapResults.position,
+          kills: mapResults.kills,
+          booyah: mapResults.booyah,
+          points: mapResults.points,
+          createdAt: mapResults.createdAt,
+          matchNumber: matches.matchNumber,
+          matchGroup: matches.matchGroup,
+          mapNumber: maps.mapNumber,
+        })
+        .from(mapResults)
+        .leftJoin(teams, eq(mapResults.teamId, teams.id))
+        .leftJoin(maps, eq(mapResults.mapId, maps.id))
+        .leftJoin(matches, eq(maps.matchId, matches.id))
+        .where(eq(matches.matchNumber, parseInt(matchNumber)))
+        .orderBy(matches.matchNumber, maps.mapNumber, mapResults.position);
+      
+      const mapNames: Record<number, string> = {
+        1: 'Bermuda', 2: 'Purgatory', 3: 'Kalahari',
+        4: 'NeXTerra', 5: 'Solara', 6: 'Alpine'
+      };
+      
+      const formattedResults = results.map(r => ({
+        id: r.id,
+        teamId: r.teamId,
+        teamName: r.teamName,
+        matchNumber: r.matchNumber,
+        matchGroup: r.matchGroup,
+        mapName: r.mapNumber ? mapNames[r.mapNumber] || 'Bermuda' : 'Bermuda',
+        position: r.position,
+        kills: r.kills,
+        booyah: r.booyah,
+        points: r.points,
+        createdAt: r.createdAt,
+      }));
+      
+      return NextResponse.json(formattedResults);
+    }
+    
+    if (matchGroup && matchGroup !== 'all') {
+      const results = await db
+        .select({
+          id: mapResults.id,
+          teamId: mapResults.teamId,
+          teamName: teams.teamName,
+          position: mapResults.position,
+          kills: mapResults.kills,
+          booyah: mapResults.booyah,
+          points: mapResults.points,
+          createdAt: mapResults.createdAt,
+          matchNumber: matches.matchNumber,
+          matchGroup: matches.matchGroup,
+          mapNumber: maps.mapNumber,
+        })
+        .from(mapResults)
+        .leftJoin(teams, eq(mapResults.teamId, teams.id))
+        .leftJoin(maps, eq(mapResults.mapId, maps.id))
+        .leftJoin(matches, eq(maps.matchId, matches.id))
+        .where(eq(matches.matchGroup, matchGroup))
+        .orderBy(matches.matchNumber, maps.mapNumber, mapResults.position);
+      
+      const mapNames: Record<number, string> = {
+        1: 'Bermuda', 2: 'Purgatory', 3: 'Kalahari',
+        4: 'NeXTerra', 5: 'Solara', 6: 'Alpine'
+      };
+      
+      const formattedResults = results.map(r => ({
+        id: r.id,
+        teamId: r.teamId,
+        teamName: r.teamName,
+        matchNumber: r.matchNumber,
+        matchGroup: r.matchGroup,
+        mapName: r.mapNumber ? mapNames[r.mapNumber] || 'Bermuda' : 'Bermuda',
+        position: r.position,
+        kills: r.kills,
+        booyah: r.booyah,
+        points: r.points,
+        createdAt: r.createdAt,
+      }));
+      
+      return NextResponse.json(formattedResults);
+    }
+    
+    const results = await db
+      .select({
+        id: mapResults.id,
+        teamId: mapResults.teamId,
+        teamName: teams.teamName,
+        position: mapResults.position,
+        kills: mapResults.kills,
+        booyah: mapResults.booyah,
+        points: mapResults.points,
+        createdAt: mapResults.createdAt,
+        matchNumber: matches.matchNumber,
+        matchGroup: matches.matchGroup,
+        mapNumber: maps.mapNumber,
+      })
+      .from(mapResults)
+      .leftJoin(teams, eq(mapResults.teamId, teams.id))
+      .leftJoin(maps, eq(mapResults.mapId, maps.id))
+      .leftJoin(matches, eq(maps.matchId, matches.id))
+      .orderBy(matches.matchNumber, maps.mapNumber, mapResults.position);
     
     const mapNames: Record<number, string> = {
       1: 'Bermuda', 2: 'Purgatory', 3: 'Kalahari',
@@ -62,7 +174,8 @@ export async function GET(request: Request) {
       teamId: r.teamId,
       teamName: r.teamName,
       matchNumber: r.matchNumber,
-      mapName: mapNames[r.mapNumber] || 'Bermuda',
+      matchGroup: r.matchGroup,
+      mapName: r.mapNumber ? mapNames[r.mapNumber] || 'Bermuda' : 'Bermuda',
       position: r.position,
       kills: r.kills,
       booyah: r.booyah,
@@ -133,7 +246,7 @@ export async function DELETE(request: Request) {
     
     for (const [teamId, stats] of teamTotals) {
       await db.insert(rankings).values({
-        teamId: teamId,
+        teamId: teamId as number,
         totalPoints: stats.points,
         totalKills: stats.kills,
         totalBooyahs: stats.booyahs,

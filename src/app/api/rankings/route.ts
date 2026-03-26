@@ -1,77 +1,44 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/db/config';
-import { teams, rankings, mapResults, matches, maps } from '@/db/schema';
-import { eq, desc, and, sql } from 'drizzle-orm';
+import { neon } from '@neondatabase/serverless';
+
+const sql = neon(process.env.DATABASE_URL!);
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const matchFilter = searchParams.get('match');
+    const matchNumber = searchParams.get('match');
+    const matchGroup = searchParams.get('group');
     
-    let allRankings: any[] = [];
+    let query = sql`
+      SELECT 
+        t.id,
+        t.team_name as "teamName",
+        t.team_tag as "teamTag",
+        COALESCE(SUM(mr.points), 0) as "totalPoints",
+        COALESCE(SUM(mr.kills), 0) as "totalKills",
+        COALESCE(SUM(CASE WHEN mr.booyah = true THEN 1 ELSE 0 END), 0) as "totalBooyahs",
+        COUNT(DISTINCT mr.map_id) as "matchesPlayed"
+      FROM teams t
+      LEFT JOIN map_results mr ON t.id = mr.team_id
+      LEFT JOIN maps mp ON mr.map_id = mp.id
+      LEFT JOIN matches m ON mp.match_id = m.id
+      WHERE m.tournament_id = 2
+    `;
     
-    if (matchFilter && parseInt(matchFilter) > 0) {
-      const matchNumber = parseInt(matchFilter);
-      
-      const result = await db
-        .select({
-          id: teams.id,
-          teamName: teams.teamName,
-          teamTag: teams.teamTag,
-          totalPoints: sql<number>`COALESCE(SUM(${mapResults.points}), 0)`,
-          totalKills: sql<number>`COALESCE(SUM(${mapResults.kills}), 0)`,
-          totalBooyahs: sql<number>`COALESCE(SUM(CASE WHEN ${mapResults.booyah} = true THEN 1 ELSE 0 END), 0)`,
-          matchesPlayed: sql<number>`COUNT(DISTINCT ${mapResults.mapId})`,
-        })
-        .from(teams)
-        .leftJoin(mapResults, eq(teams.id, mapResults.teamId))
-        .leftJoin(maps, eq(mapResults.mapId, maps.id))
-        .leftJoin(matches, eq(maps.matchId, matches.id))
-        .where(eq(matches.matchNumber, matchNumber))
-        .groupBy(teams.id, teams.teamName, teams.teamTag)
-        .orderBy(
-          desc(sql`COALESCE(SUM(${mapResults.points}), 0)`),
-          desc(sql`COALESCE(SUM(CASE WHEN ${mapResults.booyah} = true THEN 1 ELSE 0 END), 0)`),
-          desc(sql`COALESCE(SUM(${mapResults.kills}), 0)`)
-        );
-      
-      allRankings = result.map(r => ({
-        id: r.id,
-        teamName: r.teamName,
-        teamTag: r.teamTag,
-        totalPoints: Number(r.totalPoints) || 0,
-        totalKills: Number(r.totalKills) || 0,
-        totalBooyahs: Number(r.totalBooyahs) || 0,
-        matchesPlayed: Number(r.matchesPlayed) || 0,
-      }));
-    } else {
-      const result = await db
-        .select({
-          id: teams.id,
-          teamName: teams.teamName,
-          teamTag: teams.teamTag,
-          totalPoints: rankings.totalPoints,
-          totalKills: rankings.totalKills,
-          totalBooyahs: rankings.totalBooyahs,
-          matchesPlayed: rankings.matchesPlayed,
-        })
-        .from(teams)
-        .leftJoin(rankings, eq(teams.id, rankings.teamId))
-        .orderBy(desc(rankings.totalPoints), desc(rankings.totalBooyahs), desc(rankings.totalKills));
-      
-      allRankings = result.map(r => ({
-        id: r.id,
-        teamName: r.teamName,
-        teamTag: r.teamTag,
-        totalPoints: r.totalPoints || 0,
-        totalKills: r.totalKills || 0,
-        totalBooyahs: r.totalBooyahs || 0,
-        matchesPlayed: r.matchesPlayed || 0,
-      }));
+    if (matchGroup && matchGroup !== 'all') {
+      query = sql`${query} AND m.match_group = ${matchGroup}`;
     }
     
+    if (matchNumber && parseInt(matchNumber) > 0) {
+      const numMatch = parseInt(matchNumber);
+      query = sql`${query} AND m.match_number = ${numMatch}`;
+    }
     
-    return NextResponse.json(allRankings);
+    query = sql`${query} GROUP BY t.id, t.team_name, t.team_tag ORDER BY "totalPoints" DESC, "totalBooyahs" DESC, "totalKills" DESC`;
+    
+    const rankings = await query;
+    
+    return NextResponse.json(rankings);
   } catch (error) {
     console.error('Erreur API rankings:', error);
     return NextResponse.json([]);

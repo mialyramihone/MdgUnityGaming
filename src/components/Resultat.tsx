@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Trophy, ChevronDown, Clock, Award, Target, Gamepad2, Crown, Swords } from 'lucide-react';
+import { Trophy, ChevronDown, Clock, Award, Target, Gamepad2, Crown, Swords, Layers } from 'lucide-react';
 
 interface MatchResult {
   id: number;
+  teamId: number;
   teamName: string;
+  matchGroup?: string;
   matchNumber: number;
   mapName: string;
   position: number;
@@ -31,21 +33,41 @@ export default function Resultat() {
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'matchs' | 'stats'>('matchs');
   const [filterMatch, setFilterMatch] = useState<number>(0);
+  const [filterGroup, setFilterGroup] = useState<string>('all');
   const [showFilters, setShowFilters] = useState(false);
-
-  useEffect(() => {
-    fetchData();
-  }, []);
 
   const fetchData = async () => {
     setLoading(true);
     try {
+      const resultsParams = new URLSearchParams();
+      if (filterMatch > 0) {
+        resultsParams.append('match', filterMatch.toString());
+      }
+      if (filterGroup !== 'all') {
+        resultsParams.append('group', filterGroup);
+      }
+      const resultsUrl = `/api/match-results${resultsParams.toString() ? `?${resultsParams.toString()}` : ''}`;
+      
+      const rankingsParams = new URLSearchParams();
+      if (filterMatch > 0) {
+        rankingsParams.append('match', filterMatch.toString());
+      }
+      if (filterGroup !== 'all') {
+        rankingsParams.append('group', filterGroup);
+      }
+      const rankingsUrl = `/api/rankings${rankingsParams.toString() ? `?${rankingsParams.toString()}` : ''}`;
+      
+      console.log('Fetching results from:', resultsUrl); 
+      console.log('Fetching rankings from:', rankingsUrl); 
+      
       const [resultsRes, rankingsRes] = await Promise.all([
-        fetch('/api/match-results'),
-        fetch('/api/rankings')
+        fetch(resultsUrl),
+        fetch(rankingsUrl)
       ]);
+      
       const resultsData = await resultsRes.json();
       const rankingsData = await rankingsRes.json();
+      
       setMatchResults(Array.isArray(resultsData) ? resultsData : []);
       setRankings(Array.isArray(rankingsData) ? rankingsData : []);
     } catch (error) {
@@ -55,19 +77,28 @@ export default function Resultat() {
     }
   };
 
-  const filteredResults = matchResults.filter(r => {
-    if (filterMatch === 0) return true;
-    return r.matchNumber === filterMatch;
-  }).sort((a, b) => {
+  useEffect(() => {
+    fetchData();
+  }, [filterMatch, filterGroup]);
+  
+  const filteredResults = matchResults.sort((a, b) => {
     if (a.matchNumber !== b.matchNumber) return a.matchNumber - b.matchNumber;
     return a.position - b.position;
   });
 
-  const topTeam = rankings[0];
-  const topKiller = [...rankings].sort((a, b) => b.totalKills - a.totalKills)[0];
-  const totalMatches = matchResults.length;
-  const totalKills = rankings.reduce((sum, r) => sum + r.totalKills, 0);
-  const totalBooyahs = rankings.reduce((sum, r) => sum + r.totalBooyahs, 0);
+  const filteredRankings = rankings;
+  const topTeam = filteredRankings[0];
+  const topKiller = [...filteredRankings].sort((a, b) => b.totalKills - a.totalKills)[0];
+  const totalMatches = filteredResults.length;
+  const totalKills = filteredRankings.reduce((sum, r) => sum + r.totalKills, 0);
+  const totalBooyahs = filteredRankings.reduce((sum, r) => sum + r.totalBooyahs, 0);
+
+  const groupColors: Record<string, string> = {
+    'A': 'bg-red-100 text-red-600',
+    'B': 'bg-blue-100 text-blue-600',
+    'C': 'bg-green-100 text-green-600',
+    'D': 'bg-purple-100 text-purple-600'
+  };
 
   if (loading) {
     return (
@@ -88,6 +119,8 @@ export default function Resultat() {
           </h2>
           <p className="text-xs xs:text-sm text-gray-500">
             Free Fire • Résultats et statistiques
+            {filterGroup !== 'all' && ` - Groupe ${filterGroup}`}
+            {filterMatch > 0 && ` - Match ${filterMatch}`}
           </p>
         </div>
 
@@ -101,12 +134,35 @@ export default function Resultat() {
           </button>
 
           <div className={`${showFilters ? 'flex' : 'hidden'} lg:flex flex-col sm:flex-row lg:items-center gap-2 sm:gap-3`}>
-            <div className="flex rounded-lg border-2 border-[#f8c741] overflow-hidden w-full sm:w-auto">
+            {/* Filtre groupe */}
+            <div className="flex rounded-lg border-2 border-[#f8c741] overflow-hidden">
+              <button
+                onClick={() => setFilterGroup('all')}
+                className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                  filterGroup === 'all' ? 'bg-[#f8c741] text-[#292929]' : 'bg-white text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                Tous
+              </button>
+              {['A', 'B', 'C', 'D'].map(group => (
+                <button
+                  key={group}
+                  onClick={() => setFilterGroup(group)}
+                  className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                    filterGroup === group ? 'bg-[#f8c741] text-[#292929]' : 'bg-white text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  Groupe {group}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex rounded-lg border-2 border-[#f8c741] overflow-hidden">
               {(['matchs', 'stats'] as const).map((mode) => (
                 <button
                   key={mode}
                   onClick={() => setViewMode(mode)}
-                  className={`flex-1 sm:flex-none px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium transition-colors ${
+                  className={`px-3 py-1.5 text-xs font-medium transition-colors ${
                     viewMode === mode ? 'bg-[#f8c741] text-[#292929]' : 'bg-white text-gray-600 hover:bg-gray-50'
                   }`}
                 >
@@ -143,7 +199,12 @@ export default function Resultat() {
           {filteredResults.length === 0 ? (
             <div className="text-center py-12 px-4">
               <Gamepad2 className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-              <p className="text-gray-500">Aucun résultat disponible</p>
+              <p className="text-gray-500">
+                {filterGroup !== 'all' && filterMatch === 0 && `Aucun résultat pour le groupe ${filterGroup}`}
+                {filterGroup === 'all' && filterMatch > 0 && `Aucun résultat pour le match ${filterMatch}`}
+                {filterGroup !== 'all' && filterMatch > 0 && `Aucun résultat pour le groupe ${filterGroup} - match ${filterMatch}`}
+                {filterGroup === 'all' && filterMatch === 0 && 'Aucun résultat disponible'}
+              </p>
             </div>
           ) : (
             <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200 mx-4">
@@ -151,6 +212,8 @@ export default function Resultat() {
                 <h3 className="font-semibold flex items-center gap-2">
                   <Clock className="w-4 h-4 text-[#f8c741]" />
                   Historique des matchs
+                  {filterGroup !== 'all' && <span className="ml-2 text-xs px-2 py-0.5 bg-blue-100 text-blue-600 rounded-full">Groupe {filterGroup}</span>}
+                  {filterMatch > 0 && <span className="ml-2 text-xs px-2 py-0.5 bg-[#f8c741]/20 text-[#f8c741] rounded-full">Match {filterMatch}</span>}
                 </h3>
               </div>
               <div className="divide-y divide-gray-100">
@@ -158,10 +221,15 @@ export default function Resultat() {
                   <div key={idx} className="p-4 hover:bg-gray-50 transition-colors">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
                           <span className="text-xs px-2 py-0.5 bg-[#f8c741]/10 text-[#f8c741] rounded-full font-medium">
                             Match {result.matchNumber} - {result.mapName}
                           </span>
+                          {result.matchGroup && (
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${groupColors[result.matchGroup]}`}>
+                              Groupe {result.matchGroup}
+                            </span>
+                          )}
                           {result.booyah && (
                             <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded-full flex items-center gap-1">
                               <Crown className="w-3 h-3" /> Booyah
@@ -189,6 +257,7 @@ export default function Resultat() {
         </>
       )}
 
+      {/* Vue STATS */}
       {viewMode === 'stats' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-4">
           {topTeam && (
@@ -220,7 +289,11 @@ export default function Resultat() {
           <div className="bg-white rounded-xl p-6 border shadow-sm md:col-span-2">
             <div className="flex items-center gap-3 mb-4">
               <Gamepad2 className="w-5 h-5 text-[#f8c741]" />
-              <h3 className="font-semibold text-gray-800">Statistiques globales - Free Fire</h3>
+              <h3 className="font-semibold text-gray-800">
+                Statistiques globales 
+                {filterGroup !== 'all' && ` - Groupe ${filterGroup}`}
+                {filterMatch > 0 && ` - Match ${filterMatch}`}
+              </h3>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div>
@@ -228,10 +301,17 @@ export default function Resultat() {
                 <p className="text-xs text-gray-500">Matchs joués</p>
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-800">{rankings.length}</p>
+                <p className="text-2xl font-bold text-gray-800">{filteredRankings.length}</p>
                 <p className="text-xs text-gray-500">Équipes</p>
               </div>
-             
+              <div>
+                <p className="text-2xl font-bold text-blue-600">{totalKills}</p>
+                <p className="text-xs text-gray-500">Kills totaux</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-green-600">{totalBooyahs}</p>
+                <p className="text-xs text-gray-500">Booyahs</p>
+              </div>
             </div>
           </div>
         </div>
@@ -242,7 +322,7 @@ export default function Resultat() {
         <div className="flex items-center gap-1"><Crown className="w-3 h-3 text-green-500" /> Booyah</div>
         <div className="flex items-center gap-1"><Swords className="w-3 h-3 text-blue-500" /> Kills</div>
         <div className="flex items-center gap-1"><Target className="w-3 h-3 text-[#f8c741]" /> Points</div>
-        <div className="flex items-center gap-1"><Gamepad2 className="w-3 h-3 text-gray-500" /> Free Fire</div>
+        <div className="flex items-center gap-1"><Layers className="w-3 h-3 text-purple-500" /> Groupes</div>
       </div>
 
       <style jsx>{`
