@@ -1,12 +1,19 @@
 [build]
   command = "npm run build"
-  functions = "netlify/functions"
-  publish = ".next/standalone"
+  publish = ".next"
 
-[functions]
-  node_bundler = "esbuild"
+[build.environment]
+  NODE_VERSION = "20"
+  NPM_VERSION = "latest"
+
 
 [[redirects]]
   from = "/api/*"
-  to = "/.netlify/functions/:splat"
+  to = "/api/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
   status = 200
