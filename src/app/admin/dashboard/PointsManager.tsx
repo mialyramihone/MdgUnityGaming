@@ -5,7 +5,7 @@ import {
   Trophy, ChevronDown, Users, Clock, Award, Target, 
   Gamepad2, Plus, Filter, X, Save, Eye, Trash2, MapPin, 
   Crown, Flame, Compass, Mountain, Cloud, Sun,
-  Map, Swords, Layers
+  Map, Swords, Layers, Edit, Check
 } from 'lucide-react';
 
 interface Team {
@@ -60,10 +60,14 @@ export default function PointsManager() {
   const [position, setPosition] = useState('');
   const [kills, setKills] = useState(0);
   
+  // Édition
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  
   // Filtres
   const [filterGroup, setFilterGroup] = useState('all');
   const [filterMatchNumber, setFilterMatchNumber] = useState(0);
-  const [filterMap, setFilterMap] = useState('all'); // AJOUT: filtre par map
+  const [filterMap, setFilterMap] = useState('all');
   const [filterTeam, setFilterTeam] = useState('all');
   const [viewMode, setViewMode] = useState<'matchs' | 'stats' | 'ajouter'>('matchs');
   const [showFilters, setShowFilters] = useState(false);
@@ -81,7 +85,6 @@ export default function PointsManager() {
     try {
       const pointsRes = await fetch('/api/points');
       const pointsData = await pointsRes.json();
-      console.log('Données reçues:', pointsData); // Debug
       setTeams(pointsData.teams || []);
       setRankings(pointsData.rankings || []);
       setMatchResults(pointsData.matchResults || []);
@@ -92,7 +95,6 @@ export default function PointsManager() {
     }
   };
 
-  // Filtrer les résultats avec le filtre map
   const filteredResults = matchResults.filter(r => {
     const groupOk = filterGroup === 'all' || r.matchGroup === filterGroup;
     const matchOk = filterMatchNumber === 0 || r.matchNumber === filterMatchNumber;
@@ -115,8 +117,11 @@ export default function PointsManager() {
     const totalPoints = (POSITION_POINTS[pos] || 0) + kills;
 
     try {
-      const res = await fetch('/api/points', {
-        method: 'POST',
+      const url = isEditing ? `/api/points/${editingId}` : '/api/points';
+      const method = isEditing ? 'PUT' : 'POST';
+      
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           teamId: Number(selectedTeam),
@@ -131,12 +136,9 @@ export default function PointsManager() {
       });
 
       if (res.ok) {
-        alert(`Points ajoutés ! Total: ${totalPoints} pts`);
+        alert(isEditing ? 'Résultat modifié !' : `Points ajoutés ! Total: ${totalPoints} pts`);
         fetchData();
-        setSelectedGroup('');
-        setSelectedTeam('');
-        setPosition('');
-        setKills(0);
+        resetForm();
         setViewMode('matchs');
       } else {
         const error = await res.json();
@@ -148,10 +150,33 @@ export default function PointsManager() {
     }
   };
 
+  const handleEdit = (result: MatchResult) => {
+    setIsEditing(true);
+    setEditingId(result.id);
+    setSelectedGroup(result.matchGroup);
+    setSelectedMatchNumber(result.matchNumber);
+    setSelectedTeam(String(result.teamId));
+    setMapName(result.mapName);
+    setPosition(String(result.position));
+    setKills(result.kills);
+    setViewMode('ajouter');
+  };
+
+  const resetForm = () => {
+    setIsEditing(false);
+    setEditingId(null);
+    setSelectedGroup('');
+    setSelectedMatchNumber(1);
+    setSelectedTeam('');
+    setMapName(MAPS[0].name);
+    setPosition('');
+    setKills(0);
+  };
+
   const handleDeleteResult = async (resultId: number) => {
     if (!confirm('Supprimer ce résultat ?')) return;
     try {
-      const res = await fetch(`/api/match-results?id=${resultId}`, { method: 'DELETE' });
+      const res = await fetch(`/api/points/${resultId}`, { method: 'DELETE' });
       if (res.ok) {
         alert('Résultat supprimé');
         fetchData();
@@ -199,7 +224,7 @@ export default function PointsManager() {
             <Target className="w-6 h-6 text-[#f8c741]" />
             Gestion des Points
           </h2>
-          <p className="text-sm text-gray-500">Ajoutez des résultats par groupe et par match</p>
+          <p className="text-sm text-gray-500">Ajoutez ou modifiez des résultats par groupe et par match</p>
         </div>
 
         <div className="flex flex-col w-full lg:w-auto gap-2">
@@ -216,13 +241,16 @@ export default function PointsManager() {
               {(['matchs', 'stats', 'ajouter'] as const).map((mode) => (
                 <button
                   key={mode}
-                  onClick={() => setViewMode(mode)}
+                  onClick={() => {
+                    if (mode !== 'ajouter') resetForm();
+                    setViewMode(mode);
+                  }}
                   className={`px-4 py-2 text-sm font-medium transition-colors ${
                     viewMode === mode ? 'bg-[#f8c741] text-[#292929]' : 'bg-white text-gray-600 hover:bg-gray-50'
                   }`}
                 >
-                  {mode === 'ajouter' && <Plus className="w-4 h-4 inline mr-1" />}
-                  {mode === 'matchs' ? 'Matchs' : mode === 'stats' ? 'Stats' : 'Ajouter'}
+                  {mode === 'ajouter' && (isEditing ? <Edit className="w-4 h-4 inline mr-1" /> : <Plus className="w-4 h-4 inline mr-1" />)}
+                  {mode === 'matchs' ? 'Matchs' : mode === 'stats' ? 'Stats' : (isEditing ? 'Modifier' : 'Ajouter')}
                 </button>
               ))}
             </div>
@@ -321,6 +349,7 @@ export default function PointsManager() {
                       <p className="text-xl font-bold text-[#f8c741]">{result.points} pts</p>
                       <div className="flex gap-2 mt-2">
                         <button onClick={() => { setSelectedResult(result); setShowDetailModal(true); }} className="p-1 hover:text-[#f8c741]"><Eye className="w-4 h-4" /></button>
+                        <button onClick={() => handleEdit(result)} className="p-1 hover:text-blue-500"><Edit className="w-4 h-4" /></button>
                         <button onClick={() => handleDeleteResult(result.id)} className="p-1 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
                       </div>
                     </div>
@@ -349,11 +378,14 @@ export default function PointsManager() {
         </div>
       )}
 
-      {/* Vue Ajouter */}
+      {/* Vue Ajouter/Modifier */}
       {viewMode === 'ajouter' && (
         <div className="bg-white rounded-xl shadow-lg border mx-4">
           <div className="p-6">
-            <h3 className="text-lg font-bold mb-4">Enregistrer un résultat</h3>
+            <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+              {isEditing ? <Edit className="w-5 h-5 text-[#f8c741]" /> : <Plus className="w-5 h-5 text-[#f8c741]" />}
+              {isEditing ? 'Modifier le résultat' : 'Enregistrer un résultat'}
+            </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
               <div>
                 <label className="block text-sm font-medium mb-1">Groupe *</label>
@@ -406,7 +438,17 @@ export default function PointsManager() {
                 </div>
               )}
             </div>
-            <button onClick={handleSubmit} className="w-full py-3 bg-[#f8c741] rounded-lg font-bold hover:bg-[#e5b53a]">Enregistrer</button>
+            <div className="flex gap-3">
+              <button onClick={handleSubmit} className="flex-1 py-3 bg-[#f8c741] rounded-lg font-bold hover:bg-[#e5b53a] flex items-center justify-center gap-2">
+                {isEditing ? <Check className="w-5 h-5" /> : <Save className="w-5 h-5" />}
+                {isEditing ? 'Modifier' : 'Enregistrer'}
+              </button>
+              {isEditing && (
+                <button onClick={() => { resetForm(); setViewMode('matchs'); }} className="px-6 py-3 bg-gray-200 rounded-lg font-bold hover:bg-gray-300">
+                  Annuler
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -426,7 +468,14 @@ export default function PointsManager() {
               <p><strong>Booyah:</strong> {selectedResult.booyah ? 'Oui' : 'Non'}</p>
               <p><strong>Points:</strong> <span className="text-xl font-bold text-[#f8c741]">{selectedResult.points}</span></p>
             </div>
-            <button onClick={() => handleDeleteResult(selectedResult.id)} className="mt-4 w-full py-2 bg-red-500 text-white rounded-lg">Supprimer</button>
+            <div className="flex gap-3 mt-4">
+              <button onClick={() => { setShowDetailModal(false); handleEdit(selectedResult); }} className="flex-1 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 flex items-center justify-center gap-2">
+                <Edit className="w-4 h-4" /> Modifier
+              </button>
+              <button onClick={() => handleDeleteResult(selectedResult.id)} className="flex-1 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center justify-center gap-2">
+                <Trash2 className="w-4 h-4" /> Supprimer
+              </button>
+            </div>
           </div>
         </div>
       )}

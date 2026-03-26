@@ -85,11 +85,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { teamId, matchNumber, matchGroup, mapName, position, kills } = body;
-    const booyah = position === 1;
-    
-    const positionPoints = POSITION_POINTS[position] || 0;
-    const totalPoints = positionPoints + (kills * 1);
+    const { teamId, matchNumber, matchGroup, mapName, position, kills, points } = body;
     
     const mapNumberValue = MAPS[mapName as keyof typeof MAPS];
     if (!mapNumberValue) {
@@ -136,27 +132,26 @@ export async function POST(request: Request) {
     
     await sql`
       INSERT INTO map_results (map_id, team_id, position, kills, booyah, points)
-      VALUES (${mapId}, ${teamId}, ${position}, ${kills}, ${booyah}, ${totalPoints})
+      VALUES (${mapId}, ${teamId}, ${position}, ${kills}, ${position === 1}, ${points})
     `;
     
-    const existingRanking = await sql`
-      SELECT * FROM rankings WHERE team_id = ${teamId} LIMIT 1
+    await sql`DELETE FROM rankings`;
+    
+    const allResults = await sql`
+      SELECT 
+        team_id,
+        SUM(points) as total_points,
+        SUM(kills) as total_kills,
+        SUM(CASE WHEN booyah = true THEN 1 ELSE 0 END) as total_booyahs,
+        COUNT(DISTINCT map_id) as matches_played
+      FROM map_results
+      GROUP BY team_id
     `;
     
-    if (existingRanking.length === 0) {
+    for (const r of allResults) {
       await sql`
-        INSERT INTO rankings (team_id, total_points, total_kills, total_booyahs, matches_played)
-        VALUES (${teamId}, ${totalPoints}, ${kills}, ${booyah ? 1 : 0}, 1)
-      `;
-    } else {
-      await sql`
-        UPDATE rankings 
-        SET total_points = total_points + ${totalPoints},
-            total_kills = total_kills + ${kills},
-            total_booyahs = total_booyahs + ${booyah ? 1 : 0},
-            matches_played = matches_played + 1,
-            updated_at = NOW()
-        WHERE team_id = ${teamId}
+        INSERT INTO rankings (team_id, total_points, total_kills, total_booyahs, matches_played, updated_at)
+        VALUES (${r.team_id}, ${r.total_points}, ${r.total_kills}, ${r.total_booyahs}, ${r.matches_played}, NOW())
       `;
     }
     
