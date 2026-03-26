@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 
 const sql = neon(process.env.DATABASE_URL!);
@@ -14,18 +14,21 @@ const MAPS: Record<string, number> = {
   'NeXTerra': 4, 'Solara': 5, 'Alpine': 6
 };
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
-    const id = parseInt(params.id);
+    const { id } = await params;
+    const resultId = parseInt(id);
     const body = await request.json();
     const { teamId, matchNumber, matchGroup, mapName, position, kills, points } = body;
-    
     
     const existingResult = await sql`
       SELECT mr.*, mp.match_id 
       FROM map_results mr
       JOIN maps mp ON mr.map_id = mp.id
-      WHERE mr.id = ${id}
+      WHERE mr.id = ${resultId}
     `;
     
     if (existingResult.length === 0) {
@@ -36,7 +39,6 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     if (!mapNumberValue) {
       return NextResponse.json({ error: 'Map non reconnue' }, { status: 400 });
     }
-    
     
     let matchResult = await sql`
       SELECT id FROM matches 
@@ -58,7 +60,6 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       matchId = matchResult[0].id;
     }
     
-    
     let mapResult = await sql`
       SELECT id FROM maps 
       WHERE match_id = ${matchId} AND map_number = ${mapNumberValue} 
@@ -77,7 +78,6 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       newMapId = mapResult[0].id;
     }
     
-    
     await sql`
       UPDATE map_results 
       SET map_id = ${newMapId},
@@ -87,9 +87,8 @@ export async function PUT(request: Request, { params }: { params: { id: string }
           booyah = ${position === 1},
           points = ${points},
           created_at = NOW()
-      WHERE id = ${id}
+      WHERE id = ${resultId}
     `;
-    
     
     await sql`DELETE FROM rankings`;
     
@@ -118,15 +117,19 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
-    const id = parseInt(params.id);
+    const { id } = await params;
+    const resultId = parseInt(id);
     
     const result = await sql`
       SELECT mr.*, mp.match_id 
       FROM map_results mr
       JOIN maps mp ON mr.map_id = mp.id
-      WHERE mr.id = ${id}
+      WHERE mr.id = ${resultId}
     `;
     
     if (result.length === 0) {
@@ -135,7 +138,7 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
     
     const mapId = result[0].map_id;
     
-    await sql`DELETE FROM map_results WHERE id = ${id}`;
+    await sql`DELETE FROM map_results WHERE id = ${resultId}`;
     
     const remaining = await sql`
       SELECT id FROM map_results WHERE map_id = ${mapId}
